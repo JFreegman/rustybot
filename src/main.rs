@@ -24,6 +24,7 @@
 extern crate lazy_static;
 extern crate rand;
 extern crate time;
+extern crate num;
 extern crate rstox;
 
 use std::error::Error;
@@ -218,7 +219,7 @@ fn load_trivia_questions(bot: &mut Bot) -> Result<i32, i32>   // 0 on success, -
 
     let mut fp = match File::open(&path) {
         Ok(fp) => fp,
-        Err(e)   => {
+        Err(e) => {
             println!("Failed to open file {}: {}", display, Error::description(&e));
             return Err(-1);
         }
@@ -241,12 +242,12 @@ fn load_trivia_questions(bot: &mut Bot) -> Result<i32, i32>   // 0 on success, -
     Ok(0)
 }
 
-// Returns true if peernumber's public key is in the masterkeys file
+// Returns true if peernumber is in the masterkeys list or is the owner of groupnumber
 fn check_privilege(bot: &mut Bot, groupnumber: i32, peernumber: i32) -> bool
 {
     let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
         Some(key) => key.to_string(),
-        None      => {
+        None => {
             println!("Failed to fetch peer {}'s key in group {}", peernumber, groupnumber);
             return false;
         }
@@ -257,7 +258,7 @@ fn check_privilege(bot: &mut Bot, groupnumber: i32, peernumber: i32) -> bool
 
     let mut fp = match File::open(&path) {
         Ok(fp) => fp,
-        Err(e)   => {
+        Err(e) => {
             println!("Failed to open file {}: {}", display, Error::description(&e));
             return false;
         }
@@ -273,16 +274,22 @@ fn check_privilege(bot: &mut Bot, groupnumber: i32, peernumber: i32) -> bool
         }
     };
 
-    for key in keys.split("\n") {
+    for key in keys.split("\n\r") {
         if key.contains(&public_key) {
             return true;
         }
     }
 
     for g in &bot.groups {
-        if g.groupnumber == groupnumber && g.owner_pk == public_key {
+        if g.groupnumber != groupnumber {
+            continue;
+        }
+
+        if g.owner_pk == public_key {
             return true;
         }
+
+        break;
     }
 
     false
@@ -295,7 +302,7 @@ fn cb_connection_status(bot: &mut Bot, status: Connection)
         _ => (),
     }
 
-    println!("Connected to DHT ({:?})", status);
+    println!("DHT connection status: {:?}", status);
 }
 
 fn cb_friend_request(bot: &mut Bot, id: PublicKey, msg: String)
@@ -332,7 +339,7 @@ fn cb_group_namelist_change(bot: &mut Bot, groupnumber: i32, peernumber: i32, ch
 
     match change {
         ChatChange::PeerAdd  => bot.groups[index].add_peer(public_key),
-        ChatChange::PeerName => bot.groups[index].update_name(bot.tox, groupnumber, peernumber, public_key),
+        ChatChange::PeerName => bot.groups[index].update_name(bot.tox, peernumber, public_key),
         ChatChange::PeerDel  => {
             bot.groups[index].del_peer(public_key);
 

@@ -82,8 +82,8 @@ fn cmd_disable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].trivia.disable();
-    bot.send_group_message(groupnumber, "Trivia has been disabled.".to_string());
+    bot.groups[index].disable_trivia();
+    bot.groups[index].send_message(bot.tox, "Trivia has been disabled.".to_string());
 }
 
 fn cmd_enable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -97,13 +97,18 @@ fn cmd_enable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.send_group_message(groupnumber, "Trivia has been enabled.".to_string());
-    bot.groups[index].trivia.enable();
+    bot.groups[index].send_message(bot.tox, "Trivia has been enabled.".to_string());
+    bot.groups[index].enable_trivia();
 }
 
 fn cmd_help(bot: &mut Bot, groupnumber: i32, peernumber: i32)
 {
-    bot.send_group_message(groupnumber, "Commands: !help !trivia !score !stats !hint".to_string());
+    let index = match get_group_index(bot, groupnumber) {
+        Some(index) => index,
+        None        => return,
+    };
+
+    bot.groups[index].send_message(bot.tox, "Commands: !help !trivia !score !stats !hint".to_string());
 }
 
 fn cmd_hint(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -113,7 +118,10 @@ fn cmd_hint(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].trivia.hint(bot.tox, groupnumber);
+    let hint = bot.groups[index].trivia.get_hint();
+    let mut message = String::new();
+    write!(&mut message, "Hint: {}", hint).unwrap();
+    bot.groups[index].send_message(bot.tox, message);
 }
 
 fn cmd_quit(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -122,7 +130,12 @@ fn cmd_quit(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         return;
     }
 
-    bot.send_group_message(groupnumber, "Goodbye.".to_string());
+    let index = match get_group_index(bot, groupnumber) {
+        Some(index) => index,
+        None        => return,
+    };
+
+    bot.groups[index].send_message(bot.tox, "Goodbye.".to_string());
     bot.del_group(groupnumber);
 }
 
@@ -153,7 +166,7 @@ fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
 
     let mut message = String::new();
     write!(&mut message, "{}: Rounds won: {}, total score: {}", peername, rounds_won, score).unwrap();
-    bot.send_group_message(groupnumber, message);
+    bot.groups[grp_index].send_message(bot.tox, message);
 }
 
 fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -173,7 +186,7 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     for peer in bot.groups[index].peers.iter() {
         let score = peer.score;
         let rounds_won = peer.rounds_won;
-        let ref peername = peer.nick;
+        let ref peername = peer.get_nick();
 
         if score == 0 && rounds_won == 0 {
             continue;
@@ -188,7 +201,7 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         count += 1;
     }
 
-    bot.send_group_message(groupnumber, message);
+    bot.groups[index].send_message(bot.tox, message);
 }
 
 fn cmd_stop(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -202,8 +215,8 @@ fn cmd_stop(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].trivia.stop();
-    bot.send_group_message(groupnumber, "Trivia time is over.".to_string());
+    bot.groups[index].stop_trivia();
+    bot.groups[index].send_message(bot.tox, "Trivia time is over.".to_string());
 }
 
 fn cmd_trivia(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -213,7 +226,7 @@ fn cmd_trivia(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    if bot.groups[index].trivia.start(bot.tox, groupnumber) {
-        bot.send_group_message(groupnumber, "Trivia time!".to_string());
+    if bot.groups[index].start_trivia(bot.tox) {
+        bot.groups[index].send_message(bot.tox, "Trivia time!".to_string());
     }
 }

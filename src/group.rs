@@ -20,15 +20,17 @@
  *
  */
 
+use time::get_time;
+use std::fmt::Write;
 use bot::Bot;
-use trivia::Trivia;
+use trivia::*;
 use rstox::core::*;
 
 pub struct Peer {
     pub nick:            String,
     pub public_key:      String,
     pub rounds_won:      i32,
-    pub score:           i32,    // Score for current round
+    pub score:           i64,    // Score for current round
 }
 
 impl Peer {
@@ -41,12 +43,16 @@ impl Peer {
         }
     }
 
-    pub fn update_score(&mut self, points: i32) {
+    pub fn get_nick(&self) -> String {
+        return self.nick.to_string();
+    }
+
+    pub fn update_score(&mut self, points: i64) {
         self.score += points;
         self.rounds_won += 1;
     }
 
-    pub fn get_score(&self) -> i32 {
+    pub fn get_score(&self) -> i64 {
         self.score
     }
 
@@ -85,18 +91,83 @@ impl GroupChat {
         self.peers.remove(index);
     }
 
-    pub fn update_name(&mut self, tox: &mut Tox, groupnumber: i32, peernumber: i32, public_key: String) {
+    pub fn update_name(&mut self, tox: &mut Tox, peernumber: i32, public_key: String) {
         let index = match get_peer_index(&mut self.peers, public_key) {
             Some(index) => index,
             None        => return,
         };
 
-        let peername = match tox.group_peername(groupnumber, peernumber) {
+        let peername = match tox.group_peername(self.groupnumber, peernumber) {
             Some(name) => name,
             None       => return,
         };
 
         self.peers[index].nick = peername.to_string();
+    }
+
+    pub fn send_message(&self, tox: &mut Tox, message: String) {
+        match tox.group_message_send(self.groupnumber, &message) {
+            Ok(_)  => (),
+            Err(e) => println!("Failed to send message to group {}: {:?}", self.groupnumber, e),
+        }
+    }
+
+    /* Returns true if game is started */
+    pub fn start_trivia(&mut self, tox: &mut Tox) -> bool {
+        if self.trivia.running {
+            return false;
+        }
+
+        if self.trivia.disabled {
+            self.send_message(tox, "Trivia is disabled.".to_string());
+            return false;
+        }
+
+        self.trivia.new_game();
+        true
+    }
+
+    pub fn stop_trivia(&mut self) {
+        if !self.trivia.running {
+            return;
+        }
+
+        self.trivia.reset();
+    }
+
+    pub fn enable_trivia(&mut self) {
+        self.trivia.disabled = false;
+    }
+
+    pub fn disable_trivia(&mut self) {
+        self.trivia.disabled = true;
+
+        if self.trivia.running {
+            self.stop_trivia();
+        }
+    }
+
+    pub fn next_trivia_question(&mut self, tox: &mut Tox, questions: &mut Vec<String>) {
+        if self.trivia.rounds > 0 && !self.trivia.winner && !self.trivia.answer.is_empty() {
+            let mut message = String::new();
+            write!(&mut message, "Time's up! The answer was: {}", self.trivia.answer).unwrap();
+            self.send_message(tox, message);
+            self.trivia.end_timer = get_time();
+        }
+
+        if self.trivia.rounds >= MAX_ROUNDS {
+            self.stop_trivia();
+            self.send_message(tox, "Game over. Type !stats to see the leaderboard.".to_string());
+            return;
+        }
+
+        if !self.trivia.new_round(questions) {
+            return;
+        }
+
+        let mut message = String::new();
+        write!(&mut message, "ROUND {}: {}", self.trivia.rounds, self.trivia.question).unwrap();
+        self.send_message(tox, message);
     }
 }
 

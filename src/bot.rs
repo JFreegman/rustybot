@@ -39,7 +39,6 @@ pub struct Bot<'a> {
     pub groups: Vec<GroupChat>,
     pub questions: Vec<String>,    // Stores all of the trivia questions/answers
     pub last_connect: Timespec,
-    pub last_group_cleanup: Timespec,
 }
 
 impl<'a> Bot<'a> {
@@ -49,7 +48,6 @@ impl<'a> Bot<'a> {
             groups: Vec::new(),
             questions: Vec::new(),
             last_connect: Timespec::new(0, 0),
-            last_group_cleanup: Timespec::new(0, 0),
         }
     }
 
@@ -121,13 +119,6 @@ impl<'a> Bot<'a> {
         }
 
         println!("Leaving group {}", groupnumber);
-    }
-
-    pub fn send_group_message(&mut self, groupnumber: i32, message: String) {
-        match self.tox.group_message_send(groupnumber, &message) {
-            Ok(_)  => (),
-            Err(e) => println!("Failed to send message to group {}: {:?}", groupnumber, e),
-        }
     }
 
     pub fn print_info(&self) {

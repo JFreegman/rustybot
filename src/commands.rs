@@ -82,7 +82,7 @@ fn cmd_disable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].disable_trivia();
+    bot.groups[index].disable_trivia(bot.tox);
     bot.groups[index].send_message(bot.tox, "Trivia has been disabled.".to_string());
 }
 
@@ -161,11 +161,14 @@ fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None      => return,
     };
 
-    let score = bot.groups[grp_index].peers[peer_idx].get_score();
+    let score = bot.groups[grp_index].peers[peer_idx].get_total_score();
     let rounds_won = bot.groups[grp_index].peers[peer_idx].get_rounds_won();
+    let games_won = bot.groups[grp_index].peers[peer_idx].get_games_won();
 
     let mut message = String::new();
-    write!(&mut message, "{}: Rounds won: {}, total score: {}", peername, rounds_won, score).unwrap();
+    write!(&mut message, "{}: Games won: {}, Rounds won: {}, total score: {}",
+           peername, games_won, rounds_won, score).unwrap();
+
     bot.groups[grp_index].send_message(bot.tox, message);
 }
 
@@ -179,20 +182,22 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].peers.sort_by(|a, b| a.score.cmp(&b.score).reverse());
+    bot.groups[index].peers.sort_by(|a, b| a.total_score.cmp(&b.total_score).reverse());
 
     let mut count = 1;
 
     for peer in bot.groups[index].peers.iter() {
-        let score = peer.score;
-        let rounds_won = peer.rounds_won;
-        let ref peername = peer.get_nick();
+        let score = peer.get_total_score();
+        let rounds_won = peer.get_rounds_won();
+        let games_won = peer.get_games_won();
+        let peername = peer.get_nick();
 
         if score == 0 && rounds_won == 0 {
             continue;
         }
 
-        write!(&mut message, "{}: {}: Total score: {}, rounds won: {}\n", count, peername, score, rounds_won).unwrap();
+        write!(&mut message, "{}: {}: Total score: {}, rounds won: {}, games won: {}\n",
+               count, peername, score, rounds_won, games_won).unwrap();
 
         if count == 10 {
             break;
@@ -215,8 +220,7 @@ fn cmd_stop(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].stop_trivia();
-    bot.groups[index].send_message(bot.tox, "Trivia time is over.".to_string());
+    bot.groups[index].end_trivia(bot.tox);
 }
 
 fn cmd_trivia(bot: &mut Bot, groupnumber: i32, peernumber: i32)

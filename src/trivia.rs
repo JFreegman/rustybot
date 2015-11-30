@@ -166,11 +166,6 @@ pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: Str
         None      => return,
     };
 
-    let peername = match bot.tox.group_peername(groupnumber, peernumber) {
-        Some(name) => name,
-        None       => "Anonymous".to_string(),
-    };
-
     let peer_idx = match get_peer_index(&mut bot.groups[index].peers, public_key) {
         Some(idx) => idx,
         None      => return,
@@ -178,10 +173,11 @@ pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: Str
 
     let points = bot.groups[index].trivia.get_score();
     bot.groups[index].peers[peer_idx].update_score(points);
-    let score = bot.groups[index].peers[peer_idx].get_score();
+    let score = bot.groups[index].peers[peer_idx].get_round_score();
+    let peername = bot.groups[index].peers[peer_idx].get_nick();
 
     let mut message = String::new();
-    write!(&mut message, "{} got the answer for {} points (total score: {})", peername, points, score).unwrap();
+    write!(&mut message, "{} got the answer for {} points (total: {})", peername, points, score).unwrap();
     bot.groups[index].send_message(bot.tox, message);
 
     bot.groups[index].trivia.winner = true;

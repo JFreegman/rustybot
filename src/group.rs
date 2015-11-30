@@ -30,7 +30,9 @@ pub struct Peer {
     pub nick:            String,
     pub public_key:      String,
     pub rounds_won:      i32,
-    pub score:           i64,    // Score for current round
+    pub total_score:     i64,
+    pub round_score:     i64,
+    pub games_won:       i32,
 }
 
 impl Peer {
@@ -39,7 +41,9 @@ impl Peer {
             nick: "Anonymous".to_string(),
             public_key: public_key,
             rounds_won: 0,
-            score: 0,
+            total_score: 0,
+            round_score: 0,
+            games_won: 0,
         }
     }
 
@@ -48,16 +52,29 @@ impl Peer {
     }
 
     pub fn update_score(&mut self, points: i64) {
-        self.score += points;
+        self.round_score += points;
+        self.total_score += points;
         self.rounds_won += 1;
     }
 
-    pub fn get_score(&self) -> i64 {
-        self.score
+    pub fn clear_round_score(&mut self) {
+        self.round_score = 0;
+    }
+
+    pub fn get_total_score(&self) -> i64 {
+        self.total_score
+    }
+
+    pub fn get_round_score(&self) -> i64 {
+        self.round_score
     }
 
     pub fn get_rounds_won(&self) -> i32 {
         self.rounds_won
+    }
+
+    pub fn get_games_won(&self) -> i32 {
+        self.games_won
     }
 }
 
@@ -127,23 +144,61 @@ impl GroupChat {
         true
     }
 
-    pub fn stop_trivia(&mut self) {
+    pub fn end_trivia(&mut self, tox: &mut Tox) {
         if !self.trivia.running {
             return;
         }
 
         self.trivia.reset();
+
+        let mut winner_pk = String::new();
+        let mut best_score = 0;
+
+        for p in &mut self.peers {
+            if p.round_score == 0 {
+                continue;
+            }
+
+            if p.round_score > best_score {
+                best_score = p.round_score;
+                winner_pk = p.public_key.to_string();
+            }
+
+            p.clear_round_score();
+        }
+
+        if best_score == 0 || winner_pk.is_empty() {
+            return;
+        }
+
+        let mut message = String::new();
+
+        let index = match get_peer_index(&mut self.peers, winner_pk) {
+            Some(index) => index,
+            None => {
+                self.send_message(tox, "Game over. Type !stats to see the leaderboard.".to_string());
+                return;
+            }
+        };
+
+        self.peers[index].games_won += 1;
+
+        let peername = self.peers[index].get_nick();
+        write!(&mut message, "{} won the game with {} points. Type !stats to see the leaderboard.",
+                peername, best_score).unwrap();
+
+        self.send_message(tox, message);
     }
 
     pub fn enable_trivia(&mut self) {
         self.trivia.disabled = false;
     }
 
-    pub fn disable_trivia(&mut self) {
+    pub fn disable_trivia(&mut self, tox: &mut Tox) {
         self.trivia.disabled = true;
 
         if self.trivia.running {
-            self.stop_trivia();
+            self.end_trivia(tox);
         }
     }
 
@@ -156,8 +211,7 @@ impl GroupChat {
         }
 
         if self.trivia.rounds >= MAX_ROUNDS {
-            self.stop_trivia();
-            self.send_message(tox, "Game over. Type !stats to see the leaderboard.".to_string());
+            self.end_trivia(tox);
             return;
         }
 

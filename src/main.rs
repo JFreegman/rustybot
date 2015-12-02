@@ -24,19 +24,20 @@
 extern crate lazy_static;
 extern crate rand;
 extern crate time;
-extern crate num;
 extern crate rstox;
 
+
 use std::error::Error;
-use std::fs::{File, metadata};
+use std::fs::{OpenOptions, File, metadata};
 use std::path::Path;
 use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{BufReader, BufWriter};
 use std::cmp::*;
 use rand::*;
 use time::{get_time, Duration};
 use rstox::core::*;
 
+mod db;
 mod trivia;
 use self::trivia::*;
 mod group;
@@ -117,6 +118,37 @@ fn load_tox() -> Option<Tox>
 
         return Some(tox);
     }
+}
+
+/*
+ * Saves an arbitrary byte vector to path_name.
+ * Returns number of bytes written.
+ */
+pub fn save_data(path_name: &str, data: &Vec<u8>) -> usize
+{
+    let path = Path::new(path_name);
+    let display = path.display();
+    let mut options = OpenOptions::new();
+
+    let fp = match options.write(true).open(&path) {
+        Ok(fp) => fp,
+        Err(e) => {
+            println!("save_save() failed to open tox data file {}: {}", display, Error::description(&e));
+            return 0;
+        }
+    };
+
+    let mut writer = BufWriter::new(&fp);
+
+    let size = match writer.write(&data) {
+        Ok(size)  => size,
+        Err(e) => {
+            println!("save_save() failed to write tox data to file {}: {}", display, Error::description(&e));
+            return 0;
+        }
+    };
+
+    size
 }
 
 fn init_tox(tox: &mut Tox)
@@ -339,7 +371,15 @@ fn cb_group_namelist_change(bot: &mut Bot, groupnumber: i32, peernumber: i32, ch
 
     match change {
         ChatChange::PeerAdd  => bot.groups[index].add_peer(public_key),
-        ChatChange::PeerName => bot.groups[index].update_name(bot.tox, peernumber, public_key),
+        ChatChange::PeerName => {
+            let nick = match bot.tox.group_peername(groupnumber, peernumber) {
+                Some(nick) => nick,
+                None       => return,
+            };
+
+            bot.update_nick(index, &nick, &public_key);
+
+        }
         ChatChange::PeerDel  => {
             bot.groups[index].del_peer(public_key);
 

@@ -24,15 +24,13 @@ use time::get_time;
 use std::fmt::Write;
 use bot::Bot;
 use trivia::*;
+use db::*;
 use rstox::core::*;
 
 pub struct Peer {
     pub nick:            String,
     pub public_key:      String,
-    pub rounds_won:      i32,
-    pub total_score:     i64,
     pub round_score:     i64,
-    pub games_won:       i32,
 }
 
 impl Peer {
@@ -40,41 +38,28 @@ impl Peer {
         Peer {
             nick: "Anonymous".to_string(),
             public_key: public_key,
-            rounds_won: 0,
-            total_score: 0,
             round_score: 0,
-            games_won: 0,
         }
     }
 
     pub fn get_nick(&self) -> String {
-        return self.nick.to_string();
+        self.nick.to_string()
     }
 
-    pub fn update_score(&mut self, points: i64) {
+    pub fn set_nick(&mut self, nick: &str) {
+        self.nick = nick.to_string();
+    }
+
+    pub fn update_round_score(&mut self, points: i64) {
         self.round_score += points;
-        self.total_score += points;
-        self.rounds_won += 1;
-    }
-
-    pub fn clear_round_score(&mut self) {
-        self.round_score = 0;
-    }
-
-    pub fn get_total_score(&self) -> i64 {
-        self.total_score
     }
 
     pub fn get_round_score(&self) -> i64 {
         self.round_score
     }
 
-    pub fn get_rounds_won(&self) -> i32 {
-        self.rounds_won
-    }
-
-    pub fn get_games_won(&self) -> i32 {
-        self.games_won
+    pub fn clear_round(&mut self) {
+        self.round_score = 0;
     }
 }
 
@@ -100,26 +85,12 @@ impl GroupChat {
     }
 
     pub fn del_peer(&mut self, public_key: String) {
-        let index = match get_peer_index(&mut self.peers, public_key) {
+        let index = match get_peer_index(&mut self.peers, &public_key) {
             Some(index) => index,
             None        => return,
         };
 
         self.peers.remove(index);
-    }
-
-    pub fn update_name(&mut self, tox: &mut Tox, peernumber: i32, public_key: String) {
-        let index = match get_peer_index(&mut self.peers, public_key) {
-            Some(index) => index,
-            None        => return,
-        };
-
-        let peername = match tox.group_peername(self.groupnumber, peernumber) {
-            Some(name) => name,
-            None       => return,
-        };
-
-        self.peers[index].nick = peername.to_string();
     }
 
     pub fn send_message(&self, tox: &mut Tox, message: String) {
@@ -144,7 +115,7 @@ impl GroupChat {
         true
     }
 
-    pub fn end_trivia(&mut self, tox: &mut Tox) {
+    pub fn end_trivia(&mut self, tox: &mut Tox, db: &mut DataBase) {
         if !self.trivia.running {
             return;
         }
@@ -164,16 +135,17 @@ impl GroupChat {
                 winner_pk = p.public_key.to_string();
             }
 
-            p.clear_round_score();
+            p.clear_round();
         }
 
         if best_score == 0 || winner_pk.is_empty() {
+            self.send_message(tox, "Game over. Type !stats to see the leaderboard.".to_string());
             return;
         }
 
         let mut message = String::new();
 
-        let index = match get_peer_index(&mut self.peers, winner_pk) {
+        let index = match get_peer_index(&mut self.peers, &winner_pk) {
             Some(index) => index,
             None => {
                 self.send_message(tox, "Game over. Type !stats to see the leaderboard.".to_string());
@@ -181,28 +153,25 @@ impl GroupChat {
             }
         };
 
-        self.peers[index].games_won += 1;
 
         let peername = self.peers[index].get_nick();
         write!(&mut message, "{} won the game with {} points. Type !stats to see the leaderboard.",
                 peername, best_score).unwrap();
 
         self.send_message(tox, message);
+
+        db.update_score(&peername, &winner_pk, 0);
     }
 
     pub fn enable_trivia(&mut self) {
         self.trivia.disabled = false;
     }
 
-    pub fn disable_trivia(&mut self, tox: &mut Tox) {
+    pub fn disable_trivia(&mut self) {
         self.trivia.disabled = true;
-
-        if self.trivia.running {
-            self.end_trivia(tox);
-        }
     }
 
-    pub fn next_trivia_question(&mut self, tox: &mut Tox, questions: &mut Vec<String>) {
+    pub fn next_trivia_question(&mut self, tox: &mut Tox, questions: &mut Vec<String>, db: &mut DataBase) {
         if self.trivia.rounds > 0 && !self.trivia.winner && !self.trivia.answer.is_empty() {
             let mut message = String::new();
             write!(&mut message, "Time's up! The answer was: {}", self.trivia.answer).unwrap();
@@ -211,7 +180,7 @@ impl GroupChat {
         }
 
         if self.trivia.rounds >= MAX_ROUNDS {
-            self.end_trivia(tox);
+            self.end_trivia(tox, db);
             return;
         }
 
@@ -235,7 +204,7 @@ pub fn get_group_index(bot: &mut Bot, groupnumber: i32) -> Option<usize>
     index
 }
 
-pub fn get_peer_index(peers: &mut Vec<Peer>, public_key: String) -> Option<usize>
+pub fn get_peer_index(peers: &mut Vec<Peer>, public_key: &str) -> Option<usize>
 {
     let index = match peers.iter().position(|p| p.public_key == public_key) {
         Some(index) => Some(index),

@@ -22,7 +22,7 @@
 
 use std::fmt::Write;
 use bot::Bot;
-use group::{get_group_index, get_peer_index, get_peer_public_key};
+use group::{get_group_index, get_peer_public_key};
 use check_privilege;
 
 lazy_static! {
@@ -82,7 +82,7 @@ fn cmd_disable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].disable_trivia(bot.tox);
+    bot.groups[index].disable_trivia();
     bot.groups[index].send_message(bot.tox, "Trivia has been disabled.".to_string());
 }
 
@@ -146,63 +146,49 @@ fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None      => return,
     };
 
-    let peername = match bot.tox.group_peername(groupnumber, peernumber) {
-        Some(name) => name,
-        None       => "Anonymous".to_string(),
-    };
+    let mut message = String::new();
+
+    match bot.db.get_entry(&public_key) {
+        Some(stats) => write!(&mut message, "{}: Games won: {}, Rounds won: {}, total points: {}",
+                             stats.nick, stats.games_won, stats.rounds_won, stats.points).unwrap(),
+        None => write!(&mut message, "No entry found").unwrap(),
+    }
 
     let grp_index = match get_group_index(bot, groupnumber) {
         Some(idx) => idx,
         None      => return,
     };
 
-    let peer_idx = match get_peer_index(&mut bot.groups[grp_index].peers, public_key) {
-        Some(idx) => idx,
-        None      => return,
-    };
-
-    let score = bot.groups[grp_index].peers[peer_idx].get_total_score();
-    let rounds_won = bot.groups[grp_index].peers[peer_idx].get_rounds_won();
-    let games_won = bot.groups[grp_index].peers[peer_idx].get_games_won();
-
-    let mut message = String::new();
-    write!(&mut message, "{}: Games won: {}, Rounds won: {}, total score: {}",
-           peername, games_won, rounds_won, score).unwrap();
-
     bot.groups[grp_index].send_message(bot.tox, message);
 }
 
 fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
 {
-    let mut message = String::new();
-    write!(&mut message, "Leaderboard:\n").unwrap();
-
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
         None        => return,
     };
 
-    bot.groups[index].peers.sort_by(|a, b| a.total_score.cmp(&b.total_score).reverse());
+    let entries = bot.db.get_sorted_values();
+
+    if entries.is_empty() {
+        bot.groups[index].send_message(bot.tox, "Leaderboard is empty. Type !trivia command to play!".to_string());
+        return;
+    }
 
     let mut count = 1;
+    let mut message = String::new();
+    write!(&mut message, "Leaderboard:\n").unwrap();
 
-    for peer in bot.groups[index].peers.iter() {
-        let score = peer.get_total_score();
-        let rounds_won = peer.get_rounds_won();
-        let games_won = peer.get_games_won();
-        let peername = peer.get_nick();
-
-        if score == 0 && rounds_won == 0 {
-            continue;
-        }
-
-        write!(&mut message, "{}: {}: Total score: {}, rounds won: {}, games won: {}\n",
-               count, peername, score, rounds_won, games_won).unwrap();
+    for e in entries {
+        write!(&mut message, "{}: {}: Total score: {}, rounds won: {}, games won: {}",
+               count, e.nick, e.points, e.rounds_won, e.games_won).unwrap();
 
         if count == 10 {
             break;
         }
 
+        write!(&mut message, "\n").unwrap();
         count += 1;
     }
 
@@ -220,7 +206,7 @@ fn cmd_stop(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].end_trivia(bot.tox);
+    bot.groups[index].end_trivia(bot.tox, &mut bot.db);
 }
 
 fn cmd_trivia(bot: &mut Bot, groupnumber: i32, peernumber: i32)

@@ -21,7 +21,6 @@
  */
 
 use rand::*;
-use num::*;
 use time::{get_time, Timespec, Duration};
 use bot::Bot;
 use std::fmt::Write;
@@ -141,7 +140,7 @@ impl Trivia {
     fn get_score(&self) -> i64 {
         let delta = Duration::seconds(QUESTION_TIME_LIMIT) - (get_time() - self.round_timer);
         let mut t = Duration::num_seconds(&delta) + 1;
-        t = (pow(t, 2) + t * 2) / 2;
+        t = (t * t + t * 2) / 2;
         t
     }
 }
@@ -166,13 +165,13 @@ pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: Str
         None      => return,
     };
 
-    let peer_idx = match get_peer_index(&mut bot.groups[index].peers, public_key) {
+    let peer_idx = match get_peer_index(&mut bot.groups[index].peers, &public_key) {
         Some(idx) => idx,
         None      => return,
     };
 
     let points = bot.groups[index].trivia.get_score();
-    bot.groups[index].peers[peer_idx].update_score(points);
+    bot.groups[index].peers[peer_idx].update_round_score(points);
     let score = bot.groups[index].peers[peer_idx].get_round_score();
     let peername = bot.groups[index].peers[peer_idx].get_nick();
 
@@ -183,6 +182,8 @@ pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: Str
     bot.groups[index].trivia.winner = true;
     bot.groups[index].trivia.end_timer = get_time();
     bot.groups[index].trivia.round_timer = Timespec::new(0, 0);
+
+    bot.db.update_score(&peername, &public_key, points);
 }
 
 pub fn do_trivia(bot: &mut Bot)
@@ -190,7 +191,7 @@ pub fn do_trivia(bot: &mut Bot)
     for group in &mut bot.groups {
         if group.trivia.running {
             if get_time() - group.trivia.round_timer >= Duration::seconds(QUESTION_TIME_LIMIT) {
-                group.next_trivia_question(bot.tox, &mut bot.questions);
+                group.next_trivia_question(bot.tox, &mut bot.questions, &mut bot.db);
             }
         }
     }

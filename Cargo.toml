@@ -8,7 +8,7 @@ authors = [ "Jfreegman <Jfreegman@gmail.com>" ]
 lazy_static = "0.1.15"
 time = "0.1"
 rand = "0.3"
-num = "0.1.28"
+byteorder = "0.4.2"
 
 [dependencies.rstox]
 git = "https://github.com/suhr/rstox.git"

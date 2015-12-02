@@ -20,14 +20,11 @@
  *
  */
 
-use std::error::Error;
-use std::io::prelude::*;
-use std::io::BufWriter;
-use std::fs::OpenOptions;
-use std::path::Path;
 use time::Timespec;
 use rstox::core::*;
-use group::{GroupChat, get_group_index};
+use group::{GroupChat, get_group_index, get_peer_index};
+use db::*;
+use save_data;
 
 pub const PROFILE_DATA_PATH: &'static str = "data/profile.tox";
 pub const VERSION: &'static str = "0.1.0";
@@ -35,10 +32,11 @@ pub const NAME: &'static str = "rustybot";
 pub const STATUS_MESSAGE: &'static str = "Invite me to a group. !trivia starts a game of trivia, !help for other commands.";
 
 pub struct Bot<'a> {
-    pub tox: &'a mut Tox,
-    pub groups: Vec<GroupChat>,
-    pub questions: Vec<String>,    // Stores all of the trivia questions/answers
+    pub tox:          &'a mut Tox,
+    pub groups:       Vec<GroupChat>,
+    pub questions:    Vec<String>,    // Stores all of the trivia questions/answers
     pub last_connect: Timespec,
+    pub db:           DataBase,
 }
 
 impl<'a> Bot<'a> {
@@ -48,34 +46,13 @@ impl<'a> Bot<'a> {
             groups: Vec::new(),
             questions: Vec::new(),
             last_connect: Timespec::new(0, 0),
+            db: DataBase::new(),
         }
     }
 
     pub fn save(&self) {
-        let path = Path::new(PROFILE_DATA_PATH);
-        let display = path.display();
-
-        let mut options = OpenOptions::new();
-        options.write(true);
-
-        let fp = match options.open(&path) {
-            Ok(fp) => fp,
-            Err(e) => {
-                println!("save() failed to open tox data file {}: {}", display, Error::description(&e));
-                return;
-            }
-        };
-
         let data = self.tox.save();
-        let mut writer = BufWriter::new(&fp);
-
-        match writer.write(&data) {
-            Ok(_)  => (),
-            Err(e) => {
-                println!("save() failed to write tox data to save file: {}", Error::description(&e));
-                return;
-            }
-        }
+        save_data(PROFILE_DATA_PATH, &data);
     }
 
     pub fn add_group(&mut self, friendnumber: i32, key: Vec<u8>) {
@@ -119,6 +96,17 @@ impl<'a> Bot<'a> {
         }
 
         println!("Leaving group {}", groupnumber);
+    }
+
+    /* Updates the nick in both the respective group's peerlist, and in the database */
+    pub fn update_nick(&mut self, group_index: usize, nick: &str, public_key: &str) {
+        let peer_idx = match get_peer_index(&mut self.groups[group_index].peers, public_key) {
+            Some(index) => index,
+            None        => return,
+        };
+
+        self.groups[group_index].peers[peer_idx].set_nick(nick);
+        self.db.set_nick(nick, public_key);
     }
 
     pub fn print_info(&self) {

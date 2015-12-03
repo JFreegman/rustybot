@@ -24,10 +24,10 @@ use time::Timespec;
 use rstox::core::*;
 use group::{GroupChat, get_group_index, get_peer_index};
 use db::*;
-use save_data;
+use util::*;
 
 pub const PROFILE_DATA_PATH: &'static str = "data/profile.tox";
-pub const VERSION: &'static str = "0.1.0";
+pub const VERSION: &'static str = "0.2.0";
 pub const NAME: &'static str = "rustybot";
 pub const STATUS_MESSAGE: &'static str = "Invite me to a group. !trivia starts a game of trivia, !help for other commands.";
 

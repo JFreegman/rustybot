@@ -172,7 +172,7 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     let entries = bot.db.get_sorted_values();
 
     if entries.is_empty() {
-        bot.groups[index].send_message(bot.tox, "Leaderboard is empty. Type !trivia command to play!".to_string());
+        bot.groups[index].send_message(bot.tox, "Leaderboard is empty. Type !trivia to play!".to_string());
         return;
     }
 
@@ -181,14 +181,13 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     write!(&mut message, "Leaderboard:\n").unwrap();
 
     for e in entries {
-        write!(&mut message, "{}: {}: Total score: {}, rounds won: {}, games won: {}",
+        write!(&mut message, "{}: {}: Total score: {}, rounds won: {}, games won: {}\n",
                count, e.nick, e.points, e.rounds_won, e.games_won).unwrap();
 
         if count == 10 {
             break;
         }
 
-        write!(&mut message, "\n").unwrap();
         count += 1;
     }
 

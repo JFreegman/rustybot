@@ -30,7 +30,7 @@ use rstox::core::*;
 pub struct Peer {
     pub nick:            String,
     pub public_key:      String,
-    pub round_score:     i64,
+    pub round_score:     u64,
 }
 
 impl Peer {
@@ -50,11 +50,11 @@ impl Peer {
         self.nick = nick.to_string();
     }
 
-    pub fn update_round_score(&mut self, points: i64) {
+    pub fn update_round_score(&mut self, points: u64) {
         self.round_score += points;
     }
 
-    pub fn get_round_score(&self) -> i64 {
+    pub fn get_round_score(&self) -> u64 {
         self.round_score
     }
 
@@ -161,6 +161,7 @@ impl GroupChat {
         self.send_message(tox, message);
 
         db.update_score(&peername, &winner_pk, 0);
+        db.save();
     }
 
     pub fn enable_trivia(&mut self) {

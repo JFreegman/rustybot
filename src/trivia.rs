@@ -24,6 +24,7 @@ use rand::*;
 use time::{get_time, Timespec, Duration};
 use bot::Bot;
 use std::fmt::Write;
+use util::timed_out;
 use group::{get_group_index, get_peer_index, get_peer_public_key};
 
 // Number of seconds before the answer is given
@@ -85,7 +86,7 @@ impl Trivia {
         self.question.clear();
         self.answer.clear();
 
-        if get_time() - self.end_timer <= Duration::seconds(ROUND_DELAY) {
+        if !timed_out(self.end_timer, ROUND_DELAY) {
             return false;
         }
 
@@ -137,11 +138,11 @@ impl Trivia {
     }
 
     /* The score is simply based on how many seconds are left in the round */
-    fn get_score(&self) -> i64 {
+    fn get_score(&self) -> u64 {
         let delta = Duration::seconds(QUESTION_TIME_LIMIT) - (get_time() - self.round_timer);
         let mut t = Duration::num_seconds(&delta) + 1;
         t = (t * t + t * 2) / 2;
-        t
+        t as u64
     }
 }
 
@@ -190,7 +191,7 @@ pub fn do_trivia(bot: &mut Bot)
 {
     for group in &mut bot.groups {
         if group.trivia.running {
-            if get_time() - group.trivia.round_timer >= Duration::seconds(QUESTION_TIME_LIMIT) {
+            if timed_out(group.trivia.round_timer, QUESTION_TIME_LIMIT) {
                 group.next_trivia_question(bot.tox, &mut bot.questions, &mut bot.db);
             }
         }

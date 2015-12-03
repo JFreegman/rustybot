@@ -1,5 +1,5 @@
 # rustybot
-rustybot is a [Tox](https://tox.chat) groupchat trivia bot.
+rustybot is a [Tox](https://tox.chat) groupchat trivia bot. Player stats are stored in a permanent database, making scores persistent across restarts.
 
 ## Usage and ownership
 rustybot automatically accepts friend requests as well as group invites. The person who invites her

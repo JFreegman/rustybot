@@ -25,19 +25,21 @@ extern crate lazy_static;
 extern crate rand;
 extern crate time;
 extern crate rstox;
-
+extern crate byteorder;
 
 use std::error::Error;
-use std::fs::{OpenOptions, File, metadata};
+use std::fs::File;
 use std::path::Path;
 use std::io::prelude::*;
-use std::io::{BufReader, BufWriter};
+use std::io::BufReader;
 use std::cmp::*;
 use rand::*;
-use time::{get_time, Duration};
+use time::get_time;
 use rstox::core::*;
 
 mod db;
+mod util;
+use util::*;
 mod trivia;
 use self::trivia::*;
 mod group;
@@ -65,90 +67,42 @@ const BOOTSTRAP_KEY: &'static str = "04119E835DF3E78BACF0F84235B300546AF8B936F03
 fn load_tox() -> Option<Tox>
 {
     let options = ToxOptions::new();
-    let path = Path::new(PROFILE_DATA_PATH);
-    let display = path.display();
 
-    let file_exists = match metadata(&path) {
-        Ok(_) => true,
-        Err(_)   => false,
-    };
+    let fp = match open_file(PROFILE_DATA_PATH, false) {
+        Some(fp) => fp,
+        None => {
+            let tox = match Tox::new(options, None) {
+                Ok(tox) => tox,
+                Err(e)  => {
+                    println!("Tox instance failed to initialize ({:?})", e);
+                    return None;
+                }
+            };
 
-    if !file_exists {
-        match File::create(&path) {
-            Ok(_) => (),
-            Err(e) => println!("Failed to create data file {}: {}", display, Error::description(&e)),
-        };
-
-        let tox = match Tox::new(options, None) {
-            Ok(tox) => tox,
-            Err(e)  => {
-                println!("Tox instance failed to initialize ({:?})", e);
-                return None;
-            }
-        };
-
-        return Some(tox);
-    } else {
-        let fp = match File::open(path) {
-            Ok(fp) => fp,
-            Err(e) => {
-                println!("Failed to open data file {}: {}", display, Error::description(&e));
-                return None;
-            }
-        };
-
-        let mut buf = Vec::new();
-        let mut reader = BufReader::new(&fp);
-
-        match reader.read_to_end(&mut buf) {
-            Ok(_) => (),
-            Err(e) => {
-                println!("Failed to read tox data to buffer: {}", Error::description(&e));
-                return None;
-            }
-        };
-
-        let tox = match Tox::new(options, Some(&mut buf)) {
-            Ok(tox) => tox,
-            Err(e)  => {
-                println!("Tox instance failed to initialize ({:?})", e);
-                return None;
-            }
-        };
-
-        return Some(tox);
-    }
-}
-
-/*
- * Saves an arbitrary byte vector to path_name.
- * Returns number of bytes written.
- */
-pub fn save_data(path_name: &str, data: &Vec<u8>) -> usize
-{
-    let path = Path::new(path_name);
-    let display = path.display();
-    let mut options = OpenOptions::new();
-
-    let fp = match options.write(true).open(&path) {
-        Ok(fp) => fp,
-        Err(e) => {
-            println!("save_save() failed to open tox data file {}: {}", display, Error::description(&e));
-            return 0;
+            return Some(tox);
         }
     };
 
-    let mut writer = BufWriter::new(&fp);
+    let mut buf = Vec::new();
+    let mut reader = BufReader::new(&fp);
 
-    let size = match writer.write(&data) {
-        Ok(size)  => size,
+    match reader.read_to_end(&mut buf) {
+        Ok(_) => (),
         Err(e) => {
-            println!("save_save() failed to write tox data to file {}: {}", display, Error::description(&e));
-            return 0;
+            println!("Failed to read tox data to buffer: {}", Error::description(&e));
+            return None;
         }
     };
 
-    size
+    let tox = match Tox::new(options, Some(&mut buf)) {
+        Ok(tox) => tox,
+        Err(e)  => {
+            println!("Tox instance failed to initialize ({:?})", e);
+            return None;
+        }
+    };
+
+    return Some(tox);
 }
 
 fn init_tox(tox: &mut Tox)
@@ -180,7 +134,7 @@ fn bootstrap_backup(tox: &mut Tox)
 
 fn bootstrap_tox(bot: &mut Bot)
 {
-    if get_time() - bot.last_connect < Duration::seconds(BOOTSTRAP_INTERVAL) {
+    if !timed_out(bot.last_connect, BOOTSTRAP_INTERVAL) {
         return;
     }
 
@@ -306,7 +260,7 @@ fn check_privilege(bot: &mut Bot, groupnumber: i32, peernumber: i32) -> bool
         }
     };
 
-    for key in keys.split("\n\r") {
+    for key in keys.split("\n") {
         if key.contains(&public_key) {
             return true;
         }
@@ -455,6 +409,7 @@ fn main()
     let mut bot = Bot::new(&mut tox);
     bot.print_info();
     bot.save();
+    bot.db.load();
 
     match load_trivia_questions(&mut bot) {
         Ok(_)  => println!("Loaded."),

@@ -100,8 +100,8 @@ impl Trivia {
             return false;
         }
 
-        self.question = split[0].to_string();
-        self.answer = split[1].to_string();
+        self.question = split[0].trim().to_string();
+        self.answer = split[1].trim().to_string();
         self.round_timer = get_time();
 
         true

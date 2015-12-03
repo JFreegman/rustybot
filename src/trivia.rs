@@ -112,6 +112,10 @@ impl Trivia {
             return "Cram it".to_string();
         }
 
+        if self.answer.len() <= 2 {
+            return "No hints".to_string();
+        }
+
         self.hints += 1;
 
         let hint_len = self.hints * 2 + (self.hints - 1);
@@ -154,6 +158,10 @@ pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: Str
     };
 
     if !bot.groups[index].trivia.running {
+        return;
+    }
+
+    if bot.groups[index].trivia.winner {
         return;
     }
 

@@ -291,11 +291,11 @@ fn cb_connection_status(bot: &mut Bot, status: Connection)
     println!("DHT connection status: {:?}", status);
 }
 
-fn cb_friend_request(bot: &mut Bot, id: PublicKey, msg: String)
+fn cb_friend_request(bot: &mut Bot, id: PublicKey, message: &str)
 {
     let id_string = id.to_string();
     println!("Friend request from:\n{}", id_string);
-    println!("Message: {}", msg);
+    println!("Message: {}", message);
 
     match bot.tox.add_friend_norequest(&id) {
         Ok(_)  => {
@@ -324,7 +324,7 @@ fn cb_group_namelist_change(bot: &mut Bot, groupnumber: i32, peernumber: i32, ch
     };
 
     match change {
-        ChatChange::PeerAdd  => bot.groups[index].add_peer(public_key),
+        ChatChange::PeerAdd  => bot.groups[index].add_peer(&public_key),
         ChatChange::PeerName => {
             let nick = match bot.tox.group_peername(groupnumber, peernumber) {
                 Some(nick) => nick,
@@ -335,7 +335,7 @@ fn cb_group_namelist_change(bot: &mut Bot, groupnumber: i32, peernumber: i32, ch
 
         }
         ChatChange::PeerDel  => {
-            bot.groups[index].del_peer(public_key);
+            bot.groups[index].del_peer(&public_key);
 
             // Leave group if empty
             let num_peers = match bot.tox.group_number_peers(groupnumber) {
@@ -350,16 +350,16 @@ fn cb_group_namelist_change(bot: &mut Bot, groupnumber: i32, peernumber: i32, ch
     }
 }
 
-fn cb_group_message(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: String)
+fn cb_group_message(bot: &mut Bot, groupnumber: i32, peernumber: i32, message: &str)
 {
-    if msg.is_empty() {
+    if message.is_empty() {
         return;
     }
 
-    if msg.as_bytes()[0] == b'!' {
-        execute(bot, groupnumber, peernumber, msg);
+    if message.as_bytes()[0] == b'!' {
+        execute(bot, groupnumber, peernumber, message);
     } else {
-        process_answer(bot, groupnumber, peernumber, msg);
+        process_answer(bot, groupnumber, peernumber, message);
     }
 }
 
@@ -369,14 +369,14 @@ fn do_tox(bot: &mut Bot)
         match event {
             ConnectionStatus(status) =>
                 cb_connection_status(bot, status),
-            FriendRequest(id, msg) =>
-                cb_friend_request(bot, id, msg),
+            FriendRequest(id, message) =>
+                cb_friend_request(bot, id, &message),
             GroupInvite(friendnumber, kind, key) =>
                 cb_group_invite(bot, friendnumber, kind, key),
             GroupNamelistChange(groupnumber, peernumber, change) =>
                 cb_group_namelist_change(bot, groupnumber, peernumber, change),
-            GroupMessage(groupnumber, peernumber, msg) =>
-                cb_group_message(bot, groupnumber, peernumber, msg),
+            GroupMessage(groupnumber, peernumber, message) =>
+                cb_group_message(bot, groupnumber, peernumber, &message),
             _ => (),
         }
     }

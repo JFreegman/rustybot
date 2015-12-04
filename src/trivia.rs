@@ -81,7 +81,7 @@ impl Trivia {
     }
 
     /* Returns true if a new round is successfully set up */
-    pub fn new_round(&mut self, questions: &mut Vec<String>) -> bool {
+    pub fn new_round(&mut self, questions: &Vec<String>) -> bool {
         self.winner = false;
         self.question.clear();
         self.answer.clear();
@@ -150,7 +150,7 @@ impl Trivia {
     }
 }
 
-pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: String)
+pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, message: &str)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
@@ -165,7 +165,7 @@ pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: Str
         return;
     }
 
-    if msg.to_lowercase() != bot.groups[index].trivia.answer.to_lowercase() {
+    if message.to_lowercase() != bot.groups[index].trivia.answer.to_lowercase() {
         return;
     }
 
@@ -184,9 +184,9 @@ pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, msg: Str
     let score = bot.groups[index].peers[peer_idx].get_round_score();
     let peername = bot.groups[index].peers[peer_idx].get_nick();
 
-    let mut message = String::new();
-    write!(&mut message, "{} got the answer for {} points (total: {})", peername, points, score).unwrap();
-    bot.groups[index].send_message(bot.tox, message);
+    let mut response = String::new();
+    write!(&mut response, "{} got the answer for {} points (total: {})", peername, points, score).unwrap();
+    bot.groups[index].send_message(bot.tox, &response);
 
     bot.groups[index].trivia.winner = true;
     bot.groups[index].trivia.end_timer = get_time();
@@ -200,7 +200,7 @@ pub fn do_trivia(bot: &mut Bot)
     for group in &mut bot.groups {
         if group.trivia.running {
             if timed_out(group.trivia.round_timer, QUESTION_TIME_LIMIT) {
-                group.next_trivia_question(bot.tox, &mut bot.questions, &mut bot.db);
+                group.next_trivia_question(bot.tox, &bot.questions, &mut bot.db);
             }
         }
     }

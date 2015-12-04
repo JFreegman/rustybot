@@ -24,7 +24,7 @@ use std::error::Error;
 use std::fs::{OpenOptions, File};
 use std::path::Path;
 use std::io::prelude::*;
-use std::io::{BufWriter};
+use std::io::BufWriter;
 use std::io::Cursor;
 use time::{get_time, Timespec, Duration};
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -45,17 +45,14 @@ pub fn timed_out(t: Timespec, timeout: i64) -> bool
  * Attempts to open file with path_name and return the file.
  * If create is true the file will be force created.
  */
-pub fn open_file(path_name: &str, create: bool) -> Option<File>
+pub fn open_file<P: AsRef<Path>>(path: P, create: bool) -> Option<File>
 {
-    let path = Path::new(path_name);
     let mut options = OpenOptions::new();
 
-    let fp = match options.read(true).create(create).open(&path) {
-        Ok(fp) => Some(fp),
+    match options.read(true).create(create).open(&path) {
+        Ok(fp) => return Some(fp),
         Err(_) => return None,
-    };
-
-    fp
+    }
 }
 
 /*
@@ -71,25 +68,23 @@ pub fn save_data(path_name: &str, data: &Vec<u8>) -> usize
     let fp = match options.write(true).create(true).open(&path) {
         Ok(fp) => fp,
         Err(e) => {
-            println!("save_save() failed to open tox data file {}: {}", display, Error::description(&e));
+            println!("save_data() failed to open file {}: {}", display, Error::description(&e));
             return 0;
         }
     };
 
     let mut writer = BufWriter::new(&fp);
 
-    let size = match writer.write(&data) {
-        Ok(size)  => size,
+    match writer.write(&data) {
+        Ok(size)  => return size,
         Err(e) => {
-            println!("save_save() failed to write tox data to file {}: {}", display, Error::description(&e));
+            println!("save_data() failed to write to file {}: {}", display, Error::description(&e));
             return 0;
         }
-    };
-
-    size
+    }
 }
 
-/* Puts up to max_bytes bytes of a string into buf. If string is smaller than max_bytes, pads with zeroes. */
+/* Copies up to max_bytes bytes of a string into buf. If string is smaller than max_bytes, pads with zeroes. */
 pub fn string_to_nbytes(s: &str, buf: &mut Vec<u8>, max_bytes: usize)
 {
     for (i, byte) in s.as_bytes().iter().enumerate() {

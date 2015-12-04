@@ -80,12 +80,12 @@ impl GroupChat {
         }
     }
 
-    pub fn add_peer(&mut self, public_key: String) {
-        self.peers.push(Peer::new(public_key));
+    pub fn add_peer(&mut self, public_key: &str) {
+        self.peers.push(Peer::new(public_key.to_string()));
     }
 
-    pub fn del_peer(&mut self, public_key: String) {
-        let index = match get_peer_index(&mut self.peers, &public_key) {
+    pub fn del_peer(&mut self, public_key: &str) {
+        let index = match get_peer_index(&mut self.peers, public_key) {
             Some(index) => index,
             None        => return,
         };
@@ -93,8 +93,8 @@ impl GroupChat {
         self.peers.remove(index);
     }
 
-    pub fn send_message(&self, tox: &mut Tox, message: String) {
-        match tox.group_message_send(self.groupnumber, &message) {
+    pub fn send_message(&self, tox: &mut Tox, message: &str) {
+        match tox.group_message_send(self.groupnumber, message) {
             Ok(_)  => (),
             Err(e) => println!("Failed to send message to group {}: {:?}", self.groupnumber, e),
         }
@@ -107,7 +107,7 @@ impl GroupChat {
         }
 
         if self.trivia.disabled {
-            self.send_message(tox, "Trivia is disabled.".to_string());
+            self.send_message(tox, "Trivia is disabled.");
             return false;
         }
 
@@ -139,7 +139,7 @@ impl GroupChat {
         }
 
         if best_score == 0 || winner_pk.is_empty() {
-            self.send_message(tox, "Game over. Type !stats to see the leaderboard.".to_string());
+            self.send_message(tox, "Game over. Type !stats to see the leaderboard.");
             return;
         }
 
@@ -148,7 +148,7 @@ impl GroupChat {
         let index = match get_peer_index(&mut self.peers, &winner_pk) {
             Some(index) => index,
             None => {
-                self.send_message(tox, "Game over. Type !stats to see the leaderboard.".to_string());
+                self.send_message(tox, "Game over. Type !stats to see the leaderboard.");
                 return;
             }
         };
@@ -158,7 +158,7 @@ impl GroupChat {
         write!(&mut message, "{} won the game with {} points. Type !stats to see the leaderboard.",
                 peername, best_score).unwrap();
 
-        self.send_message(tox, message);
+        self.send_message(tox, &message);
 
         db.update_score(&peername, &winner_pk, 0);
         db.save();
@@ -172,11 +172,11 @@ impl GroupChat {
         self.trivia.disabled = true;
     }
 
-    pub fn next_trivia_question(&mut self, tox: &mut Tox, questions: &mut Vec<String>, db: &mut DataBase) {
+    pub fn next_trivia_question(&mut self, tox: &mut Tox, questions: &Vec<String>, db: &mut DataBase) {
         if self.trivia.rounds > 0 && !self.trivia.winner && !self.trivia.answer.is_empty() {
             let mut message = String::new();
             write!(&mut message, "Time's up! The answer was: {}", self.trivia.answer).unwrap();
-            self.send_message(tox, message);
+            self.send_message(tox, &message);
             self.trivia.end_timer = get_time();
         }
 
@@ -191,7 +191,7 @@ impl GroupChat {
 
         let mut message = String::new();
         write!(&mut message, "ROUND {}: {}", self.trivia.rounds, self.trivia.question).unwrap();
-        self.send_message(tox, message);
+        self.send_message(tox, &message);
     }
 }
 

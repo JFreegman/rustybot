@@ -64,11 +64,7 @@ impl<'a> Bot<'a> {
                 };
 
                 self.groups.push(GroupChat::new(groupnumber, friend_pk));
-
-                let friend_name = match self.tox.get_friend_name(friendnumber as u32) {
-                    Some(name) => name,
-                    None       => "Anonymous".to_string(),
-                };
+                let friend_name = self.tox.get_friend_name(friendnumber as u32).unwrap_or("Anonymous".to_string())
 
                 println!("Accepted group invite from {} ({})", friend_name, groupnumber);
             },
@@ -79,20 +75,14 @@ impl<'a> Bot<'a> {
     pub fn del_group(&mut self, groupnumber: i32) {
         let index = match get_group_index(self, groupnumber) {
             Some(index) => index,
-            None => {
-                println!("Failed to find index for groupnumber {}", groupnumber);
-                return;
-            }
+            None => return println!("Failed to find index for groupnumber {}", groupnumber),
         };
 
         self.groups.remove(index);
 
         match self.tox.del_groupchat(groupnumber) {
             Ok(_)  => (),
-            Err(e) => {
-                println!("Core failed to delete group{}: {:?}", groupnumber, e);
-                return;
-            }
+            Err(e) => return println!("Core failed to delete group{}: {:?}", groupnumber, e),
         }
 
         println!("Leaving group {}", groupnumber);
@@ -114,6 +104,6 @@ impl<'a> Bot<'a> {
         println!("Name: {}", self.tox.get_name());
         println!("Status message: {}", self.tox.get_status_message());
         println!("Tox ID: {}", self.tox.get_address());
-        println!("Friend count: {}", self.tox.get_friend_list().len());
+        println!("Friends: {}", self.tox.get_friend_list().len());
     }
 }

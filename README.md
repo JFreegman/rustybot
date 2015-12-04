@@ -1,5 +1,5 @@
 # rustybot
-rustybot is a [Tox](https://tox.chat) groupchat trivia bot written in Rust. 
+rustybot is a [Tox](https://tox.chat) groupchat trivia bot written in Rust.
 
 ## Features
 rustybot is capable of playing multiple games at once in any number of groups. Player statistics including total points accumulated, rounds won, and games won, are stored in a database and persist across restarts. Tox ID's are used as database keys, which means peers will always be tied to the same entry as long as their Tox ID doesn't change.
@@ -11,6 +11,7 @@ rustybot automatically accepts friend requests and group invites. The person who
 
 ### Non-privileged commands
 * `!help` - Print a list of non-privileged commands
+* `!hint` - Display a hint for the current question
 * `!score` - Print your score
 * `!stats` - Print the leaderboard
 * `!trivia` - Begin a game of trivia

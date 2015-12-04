@@ -25,6 +25,9 @@ use bot::Bot;
 use group::{get_group_index, get_peer_public_key};
 use check_privilege;
 
+// Maximum number of entries to print for the stats command
+const MAX_LEADERBOARD_ENTRIES: i32 = 10;
+
 lazy_static! {
     static ref COMMANDS: Vec<Command> = {
         let init = vec![
@@ -62,7 +65,7 @@ impl Command {
     }
 }
 
-pub fn execute(bot: &mut Bot, groupnumber: i32, peernumber: i32, command: String)
+pub fn execute(bot: &mut Bot, groupnumber: i32, peernumber: i32, command: &str)
 {
     for c in COMMANDS.iter() {
         if c.name == command {
@@ -83,7 +86,7 @@ fn cmd_disable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     };
 
     bot.groups[index].disable_trivia();
-    bot.groups[index].send_message(bot.tox, "Trivia has been disabled.".to_string());
+    bot.groups[index].send_message(bot.tox, "Trivia has been disabled");
 }
 
 fn cmd_enable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -97,7 +100,7 @@ fn cmd_enable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].send_message(bot.tox, "Trivia has been enabled.".to_string());
+    bot.groups[index].send_message(bot.tox, "Trivia has been enabled.");
     bot.groups[index].enable_trivia();
 }
 
@@ -108,7 +111,7 @@ fn cmd_help(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].send_message(bot.tox, "Commands: !help !trivia !score !stats !hint".to_string());
+    bot.groups[index].send_message(bot.tox, "Commands: !help !trivia !score !stats !hint");
 }
 
 fn cmd_hint(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -121,7 +124,7 @@ fn cmd_hint(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     let hint = bot.groups[index].trivia.get_hint();
     let mut message = String::new();
     write!(&mut message, "Hint: {}", hint).unwrap();
-    bot.groups[index].send_message(bot.tox, message);
+    bot.groups[index].send_message(bot.tox, &message);
 }
 
 fn cmd_quit(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -135,7 +138,7 @@ fn cmd_quit(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].send_message(bot.tox, "Goodbye.".to_string());
+    bot.groups[index].send_message(bot.tox, "Goodbye.");
     bot.del_group(groupnumber);
 }
 
@@ -159,7 +162,7 @@ fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None      => return,
     };
 
-    bot.groups[grp_index].send_message(bot.tox, message);
+    bot.groups[grp_index].send_message(bot.tox, &message);
 }
 
 fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -172,7 +175,7 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     let entries = bot.db.get_sorted_values();
 
     if entries.is_empty() {
-        bot.groups[index].send_message(bot.tox, "Leaderboard is empty. Type !trivia to play!".to_string());
+        bot.groups[index].send_message(bot.tox, "Leaderboard is empty. Type !trivia to play!");
         return;
     }
 
@@ -184,14 +187,14 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         write!(&mut message, "{}: {}: Total score: {}, rounds won: {}, games won: {}\n",
                count, e.nick, e.points, e.rounds_won, e.games_won).unwrap();
 
-        if count == 10 {
+        if count >= MAX_LEADERBOARD_ENTRIES {
             break;
         }
 
         count += 1;
     }
 
-    bot.groups[index].send_message(bot.tox, message);
+    bot.groups[index].send_message(bot.tox, &message);
 }
 
 fn cmd_stop(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -216,6 +219,6 @@ fn cmd_trivia(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     };
 
     if bot.groups[index].start_trivia(bot.tox) {
-        bot.groups[index].send_message(bot.tox, "Trivia time!".to_string());
+        bot.groups[index].send_message(bot.tox, "Trivia time!");
     }
 }

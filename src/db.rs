@@ -91,11 +91,11 @@ impl DataBase {
 
     /* Returns a DBentry for a given key if it exists. */
     pub fn get_entry(&self, key: &str) -> Option<DBentry> {
-        match self.hashmap.get(key) {
-            Some(entry) => Some(DBentry { nick: entry.nick.to_string(), games_won: entry.games_won,
-                                          rounds_won: entry.rounds_won, points: entry.points }),
-            None => None,
-        }
+        self.hashmap.get(key).map(|e| DBentry { nick: e.nick.to_string(),
+                                                games_won: e.games_won,
+                                                rounds_won: e.rounds_won,
+                                                points: e.points
+                                              })
     }
 
     /* Updates db entry's score for key. A zero value for points indicates a game win. */
@@ -144,10 +144,7 @@ impl DataBase {
 
         let size = match reader.read_to_end(&mut buf) {
             Ok(size) => size,
-            Err(e) => {
-                println!("Failed to read database to buffer: {}", Error::description(&e));
-                return;
-            }
+            Err(e) => return println!("Failed to read database to buffer: {}", Error::description(&e)),
         };
 
         if size == 0 {
@@ -155,8 +152,7 @@ impl DataBase {
         }
 
         if size % DB_ENTRY_FORMAT_SIZE != 0 {
-            println!("Failed to load database: Bad format.");
-            return;
+            return println!("Failed to load trivia database: Bad format.");
         }
 
         let num = size / DB_ENTRY_FORMAT_SIZE;
@@ -173,8 +169,8 @@ impl DataBase {
             };
 
             // Get nick len
-            start = start + (end - start);
-            end = start + SIZE_U32;
+            start = end;
+            end = end + SIZE_U32;
             let nick_len = bytes_le_to_u32(&buf[start..end]) as usize;
 
             if nick_len > DB_NICK_SIZE {
@@ -182,8 +178,8 @@ impl DataBase {
             }
 
             // Get nick
-            start = start + (end - start);
-            end = start + nick_len;
+            start = end;
+            end = end + nick_len;
             let utf8_nick = &buf[start..end];
 
             let nick = match from_utf8(utf8_nick) {
@@ -199,16 +195,16 @@ impl DataBase {
             }
 
             // Get points
-            start = start + (end - start);
-            end = start + SIZE_U64;
+            start = end;
+            end = end + SIZE_U64;
             let points = bytes_le_to_u64(&buf[start..end]);
             // Get rounds won
-            start = start + (end - start);
-            end = start + SIZE_U32;
+            start = end;
+            end = end + SIZE_U32;
             let rounds_won = bytes_le_to_u32(&buf[start..end]);
             // Get games won
-            start = start + (end - start);
-            end = start + SIZE_U32;
+            start = end;
+            end = end + SIZE_U32;
             let games_won = bytes_le_to_u32(&buf[start..end]);
 
             let entry = DBentry { nick: nick.to_string(),

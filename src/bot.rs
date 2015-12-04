@@ -64,8 +64,7 @@ impl<'a> Bot<'a> {
                 };
 
                 self.groups.push(GroupChat::new(groupnumber, friend_pk));
-                let friend_name = self.tox.get_friend_name(friendnumber as u32).unwrap_or("Anonymous".to_string())
-
+                let friend_name = self.tox.get_friend_name(friendnumber as u32).unwrap_or("Anonymous".to_string());
                 println!("Accepted group invite from {} ({})", friend_name, groupnumber);
             },
             Err(e) => println!("Failed to join group ({:?})", e),

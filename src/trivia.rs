@@ -25,8 +25,8 @@ use time::{get_time, Timespec, Duration};
 use bot::Bot;
 use std::fmt::Write;
 use std::collections::HashMap;
-use util::timed_out;
 use group::{get_group_index, get_peer_index, get_peer_public_key};
+use util::*;
 
 const PUNCTUATION: &'static str = " .,':;<>/\\=-()*&^%$#@![]{}|~?\"";
 
@@ -189,7 +189,7 @@ impl Trivia {
             return "No hints".to_string();
         }
 
-        if self.hints.len() <= self.hint_count || self.hints[self.hint_count].len() >= answer_len - 2 {
+        if self.hints.len() <= self.hint_count || char_count(&self.hints[self.hint_count], "-") < 2 {
             return "No more hints".to_string();
         }
 

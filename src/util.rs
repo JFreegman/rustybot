@@ -151,3 +151,19 @@ pub fn bytes_le_to_u64(buf: &[u8]) -> u64
         Err(_) => return 0,
     }
 }
+
+/* Returns the count of a given character within a string */
+pub fn char_count(s: &str, c: &str) -> usize
+{
+    let mut count = 0;
+
+    for ch in s.chars() {
+        let p = ch.to_string();
+
+        if p == c {
+            count += 1;
+        }
+    }
+
+    count
+}

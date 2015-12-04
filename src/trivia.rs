@@ -24,7 +24,6 @@ use rand::*;
 use time::{get_time, Timespec, Duration};
 use bot::Bot;
 use std::fmt::Write;
-use std::collections::HashMap;
 use group::{get_group_index, get_peer_index, get_peer_public_key};
 use util::*;
 
@@ -121,10 +120,6 @@ impl Trivia {
             return "Cram it".to_string();
         }
 
-        if self.answer.len() <= 2 {
-            return "No hints".to_string();
-        }
-
         if self.hints.len() <= self.hint_count || char_count(&self.hints[self.hint_count], "-") < 2 {
             return "No more hints".to_string();
         }
@@ -146,56 +141,42 @@ impl Trivia {
 /* Creates a vector of hints for the current answer. Hints are ordered by least to most letters revealed. */
 fn make_hints(answer: &str) -> Vec<String>
 {
-    let mut hints: Vec<String> = Vec::new();
+    let mut hints = Vec::new();
     let len = answer.len();
 
-    if len == 0 {
+    if len <= 3 {
         return hints;
     }
 
-    // Marks indices as used
-    let mut used = (0..len).map(|i| (i, false)).collect::<HashMap<_, _>>();
 
-    // Holds unused indices in random order
-    let mut indices = Vec::new();
+    let mut used = vec![false; len];  // Marks used indices
+    let mut indices = Vec::new();     // Holds unused indices in random order
 
     // Spaces and punctuation are freebies
     for (i, ch) in answer.chars().enumerate() {
         let p = ch.to_string();
 
         if PUNCTUATION.contains(&p) {
-            if let Some(e) = used.get_mut(&i) {
-                *e = true;
-            }
+            used[i] = true;
         } else {
             indices.push(i);
         }
     }
 
     thread_rng().shuffle(&mut indices);
-    let hint_count = ((len / 2) / NUM_CHARS_PER_HINT) + 1;
+    let num_hints = ((len / 2) / NUM_CHARS_PER_HINT) + 1;
 
-    for _ in 0..hint_count {
+    for _ in 0..num_hints {
         let mut hint = String::new();
 
         for _ in 0..NUM_CHARS_PER_HINT {
             let idx = indices.pop().unwrap_or(0);
-
-            if let Some(e) = used.get_mut(&idx) {
-                *e = true;
-            }
+            used[idx] = true;
         }
 
         for (i, ch) in answer.chars().enumerate() {
             let p = &ch.to_string();
-
-            if let Some(e) = used.get(&i) {
-                if *e == true {
-                    hint = hint + &p;
-                } else {
-                    hint = hint + "-";
-                }
-            }
+            hint = if used[i] { hint + &p } else { hint + "-" };
         }
 
         hints.push(hint);

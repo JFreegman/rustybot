@@ -152,7 +152,7 @@ fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     let mut message = String::new();
 
     match bot.db.get_entry(&public_key) {
-        Some(stats) => write!(&mut message, "{}: Games won: {}, Rounds won: {}, total points: {}",
+        Some(stats) => write!(&mut message, "{}: Games won: {}, Rounds won: {}, Total points: {}",
                              stats.nick, stats.games_won, stats.rounds_won, stats.points).unwrap(),
         None => write!(&mut message, "No entry found").unwrap(),
     }
@@ -184,7 +184,7 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     write!(&mut message, "Leaderboard:\n").unwrap();
 
     for e in entries {
-        write!(&mut message, "{}: {}: Total score: {}, rounds won: {}, games won: {}\n",
+        write!(&mut message, "{}. {}....{} points....{} rounds....{} games\n",
                count, e.nick, e.points, e.rounds_won, e.games_won).unwrap();
 
         if count >= MAX_LEADERBOARD_ENTRIES {

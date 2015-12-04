@@ -111,71 +111,9 @@ impl Trivia {
         self.question = split[0].trim().to_string();
         self.answer = split[1].trim().to_string();
         self.round_timer = get_time();
-        self.hints = self.make_hints(&self.answer);
+        self.hints = make_hints(&self.answer);
 
         true
-    }
-
-    /*
-     * Creates a vector of hints for the current answer. Hints are ordered by least to most letters revealed.
-     * The number of hints for a given answer is limited to half of the answer's length.
-     */
-    fn make_hints(&self, answer: &str) -> Vec<String> {
-        let mut hints: Vec<String> = Vec::new();
-        let len = answer.len();
-
-        if len == 0 {
-            return hints;
-        }
-
-        // Marks indices as used
-        let mut used = (0..len).map(|i| (i, false)).collect::<HashMap<_, _>>();
-
-        // Randomizes order of characters to reveal
-        let mut indices = (0..len).collect::<Vec<_>>();
-        thread_rng().shuffle(&mut indices);
-
-        // Spaces and punctuation are freebies
-        for (i, ch) in answer.chars().enumerate() {
-            let p = ch.to_string();
-
-            if PUNCTUATION.contains(&p) {
-                indices.remove(i);
-                if let Some(e) = used.get_mut(&i) {
-                    *e = true;
-                }
-            }
-        }
-
-        let hint_count = ((len / 2) / NUM_CHARS_PER_HINT) + 1;
-
-        for _ in 0..hint_count {
-            let mut hint = String::new();
-
-            for _ in 0..NUM_CHARS_PER_HINT {
-                let idx = indices.pop().unwrap_or(0);
-
-                if let Some(e) = used.get_mut(&idx) {
-                    *e = true;
-                }
-            }
-
-            for (i, ch) in answer.chars().enumerate() {
-                let p = &ch.to_string();
-
-                if let Some(e) = used.get(&i) {
-                    if *e == true {
-                        hint = hint + &p;
-                    } else {
-                        hint = hint + "-";
-                    }
-                }
-            }
-
-            hints.push(hint);
-        }
-
-        hints
     }
 
     pub fn get_hint(&mut self) -> String {
@@ -183,9 +121,7 @@ impl Trivia {
             return "Cram it".to_string();
         }
 
-        let answer_len = self.answer.len();
-
-        if answer_len <= 2 {
+        if self.answer.len() <= 2 {
             return "No hints".to_string();
         }
 
@@ -205,6 +141,67 @@ impl Trivia {
         t = (t * t + t * 2) / 2;
         t as u64
     }
+}
+
+/* Creates a vector of hints for the current answer. Hints are ordered by least to most letters revealed. */
+fn make_hints(answer: &str) -> Vec<String>
+{
+    let mut hints: Vec<String> = Vec::new();
+    let len = answer.len();
+
+    if len == 0 {
+        return hints;
+    }
+
+    // Marks indices as used
+    let mut used = (0..len).map(|i| (i, false)).collect::<HashMap<_, _>>();
+
+    // Holds unused indices in random order
+    let mut indices = Vec::new();
+
+    // Spaces and punctuation are freebies
+    for (i, ch) in answer.chars().enumerate() {
+        let p = ch.to_string();
+
+        if PUNCTUATION.contains(&p) {
+            if let Some(e) = used.get_mut(&i) {
+                *e = true;
+            }
+        } else {
+            indices.push(i);
+        }
+    }
+
+    thread_rng().shuffle(&mut indices);
+    let hint_count = ((len / 2) / NUM_CHARS_PER_HINT) + 1;
+
+    for _ in 0..hint_count {
+        let mut hint = String::new();
+
+        for _ in 0..NUM_CHARS_PER_HINT {
+            let idx = indices.pop().unwrap_or(0);
+
+            if let Some(e) = used.get_mut(&idx) {
+                *e = true;
+            }
+        }
+
+        for (i, ch) in answer.chars().enumerate() {
+            let p = &ch.to_string();
+
+            if let Some(e) = used.get(&i) {
+                if *e == true {
+                    hint = hint + &p;
+                } else {
+                    hint = hint + "-";
+                }
+            }
+        }
+
+        hints.push(hint);
+    }
+
+    hints
 }
 
 pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, message: &str)

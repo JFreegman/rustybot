@@ -407,8 +407,8 @@ fn main()
 
     init_tox(&mut tox);
     let mut bot = Bot::new(&mut tox);
-    bot.print_info();
     bot.save();
+    bot.print_info();
     bot.db.load();
 
     match load_trivia_questions(&mut bot) {

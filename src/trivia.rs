@@ -24,8 +24,11 @@ use rand::*;
 use time::{get_time, Timespec, Duration};
 use bot::Bot;
 use std::fmt::Write;
+use std::collections::HashMap;
 use util::timed_out;
 use group::{get_group_index, get_peer_index, get_peer_public_key};
+
+const PUNCTUATION: &'static str = " .,':;<>/\\=-()*&^%$#@![]{}|~?\"";
 
 // Number of seconds before the answer is given
 const QUESTION_TIME_LIMIT: i64 = 30;
@@ -36,14 +39,16 @@ pub const MAX_ROUNDS: u32 = 30;
 // Seconds to wait between rounds
 const ROUND_DELAY: i64 = 3;
 
-const PUNCTUATION: &'static str = " .,':;<>/\\=-()*&^%$#@![]{}|~?\"";
+// Number of new characters to reveal per hint
+const NUM_CHARS_PER_HINT: usize = 2;
 
 pub struct Trivia {
     pub question:    String,      // Current round's question
     pub answer:      String,      // Current round's answer
     pub running:     bool,        // True if a game is currently going
     pub rounds:      u32,         // Current round number
-    pub hints:       u32,         // Number of hints given for the current round
+    pub hints:       Vec<String>, // Colleciton of current round's hints
+    pub hint_count:  usize,       // Number of hints given for the current round
     pub round_timer: Timespec,    // Time since round began
     pub end_timer:   Timespec,    // Time since last round ended
     pub winner:      bool,        // True if the round has been won
@@ -57,7 +62,8 @@ impl Trivia {
             answer: String::new(),
             running: false,
             rounds: 0,
-            hints: 0,
+            hint_count: 0,
+            hints: Vec::new(),
             round_timer: Timespec::new(0, 0),
             end_timer: Timespec::new(0, 0),
             winner: false,
@@ -70,7 +76,8 @@ impl Trivia {
         self.answer.clear();
         self.running = false;
         self.rounds = 0;
-        self.hints = 0;
+        self.hints.clear();
+        self.hint_count = 0;
         self.round_timer = Timespec::new(0, 0);
         self.end_timer = Timespec::new(0, 0);
         self.winner = false;
@@ -85,6 +92,7 @@ impl Trivia {
         self.winner = false;
         self.question.clear();
         self.answer.clear();
+        self.hints.clear();
 
         if !timed_out(self.end_timer, ROUND_DELAY) {
             return false;
@@ -93,7 +101,7 @@ impl Trivia {
         let idx = thread_rng().gen_range(0, questions.len());
         let split: Vec<&str> = questions[idx].split("`").collect();
 
-        self.hints = 0;
+        self.hint_count = 0;
         self.rounds += 1;
 
         if split.len() < 2 {
@@ -103,8 +111,71 @@ impl Trivia {
         self.question = split[0].trim().to_string();
         self.answer = split[1].trim().to_string();
         self.round_timer = get_time();
+        self.hints = self.make_hints(&self.answer);
 
         true
+    }
+
+    /*
+     * Creates a vector of hints for the current answer. Hints are ordered by least to most letters revealed.
+     * The number of hints for a given answer is limited to half of the answer's length.
+     */
+    fn make_hints(&self, answer: &str) -> Vec<String> {
+        let mut hints: Vec<String> = Vec::new();
+        let len = answer.len();
+
+        if len == 0 {
+            return hints;
+        }
+
+        // Marks indices as used
+        let mut used = (0..len).map(|i| (i, false)).collect::<HashMap<_, _>>();
+
+        // Randomizes order of characters to reveal
+        let mut indices = (0..len).collect::<Vec<_>>();
+        thread_rng().shuffle(&mut indices);
+
+        // Spaces and punctuation are freebies
+        for (i, ch) in answer.chars().enumerate() {
+            let p = ch.to_string();
+
+            if PUNCTUATION.contains(&p) {
+                indices.remove(i);
+                if let Some(e) = used.get_mut(&i) {
+                    *e = true;
+                }
+            }
+        }
+
+        let hint_count = ((len / 2) / NUM_CHARS_PER_HINT) + 1;
+
+        for _ in 0..hint_count {
+            let mut hint = String::new();
+
+            for _ in 0..NUM_CHARS_PER_HINT {
+                let idx = indices.pop().unwrap_or(0);
+
+                if let Some(e) = used.get_mut(&idx) {
+                    *e = true;
+                }
+            }
+
+            for (i, ch) in answer.chars().enumerate() {
+                let p = &ch.to_string();
+
+                if let Some(e) = used.get(&i) {
+                    if *e == true {
+                        hint = hint + &p;
+                    } else {
+                        hint = hint + "-";
+                    }
+                }
+            }
+
+            hints.push(hint);
+        }
+
+        hints
     }
 
     pub fn get_hint(&mut self) -> String {
@@ -112,32 +183,18 @@ impl Trivia {
             return "Cram it".to_string();
         }
 
-        if self.answer.len() <= 2 {
+        let answer_len = self.answer.len();
+
+        if answer_len <= 2 {
             return "No hints".to_string();
         }
 
-        self.hints += 1;
-
-        let hint_len = self.hints * 2 + (self.hints - 1);
-        let max_len = self.answer.len() as u32 / 2;
-        let mut hint = String::new();
-        let mut count = 0;
-
-        for ch in self.answer.chars() {
-            let p = ch.to_string();
-            hint = hint + &p;
-
-            if PUNCTUATION.contains(&p) {
-                continue;
-            }
-
-            count += 1;
-
-            if count >= hint_len || count > max_len {
-                break;
-            }
+        if self.hints.len() <= self.hint_count || self.hints[self.hint_count].len() >= answer_len - 2 {
+            return "No more hints".to_string();
         }
 
+        let hint = self.hints[self.hint_count].to_string();
+        self.hint_count += 1;
         hint
     }
 

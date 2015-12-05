@@ -37,6 +37,7 @@ lazy_static! {
             Command::new( "!hint",      cmd_hint    ),
             Command::new( "!quit",      cmd_quit    ),
             Command::new( "!score",     cmd_score   ),
+            Command::new( "!source",    cmd_source  ),
             Command::new( "!stats",     cmd_stats   ),
             Command::new( "!stop",      cmd_stop    ),
             Command::new( "!trivia",    cmd_trivia  ),
@@ -111,7 +112,7 @@ fn cmd_help(bot: &mut Bot, groupnumber: i32, peernumber: i32)
         None        => return,
     };
 
-    bot.groups[index].send_message(bot.tox, "Commands: !help !trivia !score !stats !hint");
+    bot.groups[index].send_message(bot.tox, "Commands: !trivia !hint !score !stats !source");
 }
 
 fn cmd_hint(bot: &mut Bot, groupnumber: i32, peernumber: i32)
@@ -163,6 +164,17 @@ fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     };
 
     bot.groups[grp_index].send_message(bot.tox, &message);
+}
+
+
+fn cmd_source(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+{
+    let index = match get_group_index(bot, groupnumber) {
+        Some(index) => index,
+        None        => return,
+    };
+
+    bot.groups[index].send_message(bot.tox, "https://github.com/JFreegman/rustybot/");
 }
 
 fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)

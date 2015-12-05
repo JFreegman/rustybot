@@ -12,6 +12,7 @@ rustybot automatically accepts friend requests and group invites. The person who
 ### Non-privileged commands
 * `!help` - Print a list of non-privileged commands
 * `!hint` - Display a hint for the current question
+* `!source` - Link to the source code
 * `!score` - Print your score
 * `!stats` - Print the leaderboard
 * `!trivia` - Begin a game of trivia

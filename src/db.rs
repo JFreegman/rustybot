@@ -79,12 +79,7 @@ impl DataBase {
      * Note: This is very inefficient for a large database but fuck it YOLO
      */
     pub fn get_sorted_values(&self) -> Vec<&DBentry> {
-        let mut list = Vec::new();
-
-        for v in self.hashmap.values() {
-            list.push(v);
-        }
-
+        let mut list: Vec<&DBentry> = self.hashmap.values().collect();
         list.sort_by(|a, b| a.points.cmp(&b.points).reverse());
         list
     }

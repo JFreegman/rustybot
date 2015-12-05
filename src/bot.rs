@@ -52,7 +52,11 @@ impl<'a> Bot<'a> {
 
     pub fn save(&self) {
         let data = self.tox.save();
-        save_data(PROFILE_DATA_PATH, &data);
+
+        match save_data(PROFILE_DATA_PATH, &data) {
+            Ok(_) => (),
+            Err(e) => println!("save_data failed: {}", e),
+        }
     }
 
     pub fn add_group(&mut self, friendnumber: i32, key: Vec<u8>) {

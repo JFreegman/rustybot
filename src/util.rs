@@ -55,33 +55,21 @@ pub fn open_file<P: AsRef<Path>>(path: P, create: bool) -> Option<File>
     }
 }
 
-/*
- * Saves an arbitrary byte vector to path_name.
- * Returns number of bytes written.
- */
-pub fn save_data(path_name: &str, data: &Vec<u8>) -> usize
+/* Saves an arbitrary byte vector to path_name. */
+pub fn save_data(path_name: &str, data: &Vec<u8>) -> Result<usize, String>
 {
     let path = Path::new(path_name);
     let display = path.display();
     let mut options = OpenOptions::new();
 
-    let fp = match options.write(true).create(true).open(&path) {
-        Ok(fp) => fp,
-        Err(e) => {
-            println!("save_data() failed to open file {}: {}", display, Error::description(&e));
-            return 0;
-        }
-    };
+    let fp = try!(options.write(true).create(true).open(&path)
+                         .map_err(|e| format!("Couldn't open file {}: {}", display, Error::description(&e))));
 
     let mut writer = BufWriter::new(&fp);
 
-    match writer.write(&data) {
-        Ok(size)  => return size,
-        Err(e) => {
-            println!("save_data() failed to write to file {}: {}", display, Error::description(&e));
-            return 0;
-        }
-    }
+    let size = try!(writer.write(&data)
+                          .map_err(|e| format!("Couldn't write to file {}: {}", display, Error::description(&e))));
+    Ok(size)
 }
 
 /* Copies up to max_bytes bytes of a string into buf. If string is smaller than max_bytes, pads with zeroes. */
@@ -121,11 +109,7 @@ pub fn u32_to_bytes_le(val: u32, buf: &mut Vec<u8>)
 pub fn bytes_le_to_u32(buf: &[u8]) -> u32
 {
     let mut temp = Cursor::new(buf);
-
-    match temp.read_u32::<LittleEndian>() {
-        Ok(num) => return num,
-        Err(_)  => return 0,
-    }
+    temp.read_u32::<LittleEndian>().unwrap_or(0)
 }
 
 /* Converts a unsigned 64-bit integer into bytes in little-endian order and pushes them to buf vector */
@@ -145,22 +129,16 @@ pub fn u64_to_bytes_le(val: u64, buf: &mut Vec<u8>)
 pub fn bytes_le_to_u64(buf: &[u8]) -> u64
 {
     let mut temp = Cursor::new(buf);
-
-    match temp.read_u64::<LittleEndian>() {
-        Ok(num) => return num,
-        Err(_) => return 0,
-    }
+    temp.read_u64::<LittleEndian>().unwrap_or(0)
 }
 
 /* Returns the count of a given character within a string */
-pub fn char_count(s: &str, c: &str) -> usize
+pub fn char_count(s: &str, c: char) -> usize
 {
     let mut count = 0;
 
     for ch in s.chars() {
-        let p = ch.to_string();
-
-        if p == c {
+        if ch == c {
             count += 1;
         }
     }

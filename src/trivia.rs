@@ -110,7 +110,7 @@ impl Trivia {
         self.question = split[0].trim().to_string();
         self.answer = split[1].trim().to_string();
         self.round_timer = get_time();
-        self.hints = make_hints(&self.answer);
+        self.hints = generate_hints(&self.answer);
 
         true
     }
@@ -120,7 +120,7 @@ impl Trivia {
             return "Cram it".to_string();
         }
 
-        if self.hints.len() <= self.hint_count || char_count(&self.hints[self.hint_count], "-") < 2 {
+        if self.hints.len() <= self.hint_count || char_count(&self.hints[self.hint_count], '-') < 2 {
             return "No more hints".to_string();
         }
 
@@ -139,7 +139,7 @@ impl Trivia {
 }
 
 /* Creates a vector of hints for the current answer. Hints are ordered by least to most letters revealed. */
-fn make_hints(answer: &str) -> Vec<String>
+fn generate_hints(answer: &str) -> Vec<String>
 {
     let mut hints = Vec::new();
     let len = answer.len();
@@ -175,8 +175,7 @@ fn make_hints(answer: &str) -> Vec<String>
         }
 
         for (i, ch) in answer.chars().enumerate() {
-            let p = &ch.to_string();
-            hint = if used[i] { hint + &p } else { hint + "-" };
+            hint = if used[i] { hint + &ch.to_string() } else { hint + "-" };
         }
 
         hints.push(hint);

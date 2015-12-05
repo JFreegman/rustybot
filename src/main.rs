@@ -107,19 +107,15 @@ fn load_tox() -> Option<Tox>
 
 fn init_tox(tox: &mut Tox)
 {
-    if tox.get_name().is_empty() {
-        match tox.set_name(NAME) {
-            Ok(_)  => (),
-            Err(e) => println!("Failed to set default name ({:?})", e),
-        };
-    }
+    match tox.set_name(NAME) {
+        Ok(_)  => (),
+        Err(e) => println!("Failed to set name ({:?})", e),
+    };
 
-    if tox.get_status_message().is_empty() {
-        match tox.set_status_message(STATUS_MESSAGE) {
-            Ok(_)  => (),
-            Err(e) => println!("Failed to set default status message ({:?})", e),
-        };
-    }
+    match tox.set_status_message(STATUS_MESSAGE) {
+        Ok(_)  => (),
+        Err(e) => println!("Failed to set status message ({:?})", e),
+    };
 }
 
 fn bootstrap_backup(tox: &mut Tox)
@@ -195,37 +191,23 @@ fn bootstrap_tox(bot: &mut Bot)
     }
 }
 
-fn load_trivia_questions(bot: &mut Bot) -> Result<i32, i32>   // 0 on success, -1 on error
+fn load_trivia_questions(bot: &mut Bot) -> Result<(), String>
 {
 
     println!("Loading trivia questions...");
 
     let path = Path::new(QUESTIONS_PATH);
     let display = path.display();
-
-    let mut fp = match File::open(&path) {
-        Ok(fp) => fp,
-        Err(e) => {
-            println!("Failed to open file {}: {}", display, Error::description(&e));
-            return Err(-1);
-        }
-    };
-
     let mut questions = String::new();
 
-    match fp.read_to_string(&mut questions) {
-        Ok(_)  => (),
-        Err(e) => {
-            println!("Failed to read file {}: {}", display, Error::description(&e));
-            return Err(-1);
-        }
-    }
+    let mut fp = try!(File::open(&path).map_err(|e| format!("Open failed on file {}: {}", display, Error::description(&e))));
+    try!(fp.read_to_string(&mut questions).map_err(|e| format!("Read failed on file {}: {}", display, Error::description(&e))));
 
     for line in questions.split("\n") {
         bot.questions.push(line.to_string());
     }
 
-    Ok(0)
+    Ok(())
 }
 
 // Returns true if peernumber is in the masterkeys list or is the owner of groupnumber
@@ -413,7 +395,7 @@ fn main()
 
     match load_trivia_questions(&mut bot) {
         Ok(_)  => println!("Loaded."),
-        Err(_) => println!("Trivia questions failed to load"),
+        Err(e) => println!("Trivia questions failed to load: {}", e),
     }
 
     loop {

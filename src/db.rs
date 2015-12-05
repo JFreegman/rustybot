@@ -130,7 +130,10 @@ impl DataBase {
             u32_to_bytes_le(val.games_won, &mut data);
         }
 
-        save_data(DATABASE_PATH, &data);
+        match save_data(DATABASE_PATH, &data) {
+            Ok(_) => (),
+            Err(e) => println!("save_data failed: {}", e),
+        }
     }
 
     pub fn load(&mut self) {

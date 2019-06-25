@@ -83,7 +83,14 @@ impl<'a> Bot<'a> {
 
         self.groups.remove(index);
         self.tox.delete_conference(groupnumber);
+
         println!("Leaving group {}", groupnumber);
+    }
+
+    pub fn leave_all_groups(&mut self) {
+        for g in &self.groups {
+            self.tox.delete_conference(g.groupnumber);
+        }
     }
 
     /* Updates the nick in both the respective group's peerlist, and in the database */

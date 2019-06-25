@@ -26,6 +26,7 @@ extern crate rand;
 extern crate time;
 extern crate rstox;
 extern crate byteorder;
+extern crate ctrlc;
 
 use std::error::Error;
 use std::fs::File;
@@ -36,6 +37,8 @@ use std::cmp::*;
 use rand::*;
 use time::get_time;
 use rstox::core::*;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 mod db;
 mod util;
@@ -386,6 +389,12 @@ fn do_rustybot(bot: &mut Bot)
     do_connection(bot);
 }
 
+fn kill(bot: &mut Bot)
+{
+    bot.leave_all_groups();
+    println!("Exiting");
+}
+
 fn main()
 {
     let mut tox = match load_tox() {
@@ -404,7 +413,15 @@ fn main()
         Err(e) => println!("Trivia questions failed to load: {}", e),
     }
 
-    loop {
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+
+    ctrlc::set_handler(move || { r.store(false, Ordering::SeqCst); })
+                      .expect("Error setting Ctrl-C handler");
+
+    while running.load(Ordering::SeqCst) {
         do_rustybot(&mut bot);
     }
+
+    kill(&mut bot);
 }

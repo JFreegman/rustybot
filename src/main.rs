@@ -211,7 +211,7 @@ fn load_trivia_questions(bot: &mut Bot) -> Result<(), String>
 }
 
 // Returns true if peernumber is in the masterkeys list or is the owner of groupnumber
-fn check_privilege(bot: &mut Bot, groupnumber: i32, peernumber: i32) -> bool
+fn check_privilege(bot: &mut Bot, groupnumber: u32, peernumber: u32) -> bool
 {
     let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
         Some(key) => key.to_string(),
@@ -288,51 +288,40 @@ fn cb_friend_request(bot: &mut Bot, id: PublicKey, message: &str)
     };
 }
 
-fn cb_group_invite(bot: &mut Bot, friendnumber: i32, kind: GroupchatType, key: Vec<u8>)
+fn cb_group_invite(bot: &mut Bot, friendnumber: u32, _kind: ConferenceType, cookie: &Cookie)
 {
-    bot.add_group(friendnumber, key);
+    bot.add_group(friendnumber, cookie);
 }
 
-fn cb_group_namelist_change(bot: &mut Bot, groupnumber: i32, peernumber: i32, change: ChatChange)
+fn cb_group_peerlist_change(bot: &mut Bot, groupnumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
         None        => return,
     };
 
-    let public_key = match bot.tox.group_peer_pubkey(groupnumber, peernumber) {
-        Some(key) => key.to_string(),
-        None      => return println!("Failed to fetch peer {}'s public key", peernumber),
-    };
+    let num_peers = bot.tox.conference_peer_count(groupnumber).unwrap();
+    let mut new_list: Vec<Peer> = Vec::new();
 
-    match change {
-        ChatChange::PeerAdd  => bot.groups[index].add_peer(&public_key),
-        ChatChange::PeerName => {
-            let nick = match bot.tox.group_peername(groupnumber, peernumber) {
-                Some(nick) => nick,
-                None       => return,
-            };
+    for i in 0..num_peers {
+        let public_key = match bot.tox.get_peer_public_key(groupnumber, i) {
+            Ok(public_key) => public_key.to_string(),
+            Err(_) => continue,
+        };
 
-            bot.update_nick(index, &nick, &public_key);
-
-        }
-        ChatChange::PeerDel  => {
-            bot.groups[index].del_peer(&public_key);
-
-            // Leave group if empty
-            let num_peers = match bot.tox.group_number_peers(groupnumber) {
-                Some(num_peers) => num_peers,
-                None            => return,
-            };
-
-            if num_peers <= 1 {
-                bot.del_group(groupnumber);
-            }
-        }
+        match get_peer_index(&mut bot.groups[index].peers, &public_key) {
+            Some(peer_idx) => {
+                let old_nick = &bot.groups[index].peers[peer_idx].nick;
+                new_list.push(Peer::new(public_key, old_nick.to_string()));
+            },
+            None => new_list.push(Peer::new(public_key, "Anonymous".to_string())),
+        };
     }
+
+    bot.groups[index].peers = new_list;
 }
 
-fn cb_group_message(bot: &mut Bot, groupnumber: i32, peernumber: i32, message: &str)
+fn cb_group_message(bot: &mut Bot, groupnumber: u32, peernumber: u32, message: &str)
 {
     if message.is_empty() {
         return;
@@ -345,6 +334,21 @@ fn cb_group_message(bot: &mut Bot, groupnumber: i32, peernumber: i32, message: &
     }
 }
 
+fn cb_group_peername_change(bot: &mut Bot, groupnumber: u32, peernumber: u32, name: &str)
+{
+    let index = match get_group_index(bot, groupnumber) {
+        Some(index) => index as u32,
+        None        => return,
+    };
+
+    let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
+        Some(public_key) => public_key,
+        None             => return,
+    };
+
+    bot.update_nick(index as usize, &name, &public_key);
+}
+
 fn do_tox(bot: &mut Bot)
 {
     for event in bot.tox.iter() {
@@ -353,12 +357,14 @@ fn do_tox(bot: &mut Bot)
                 cb_connection_status(bot, status),
             FriendRequest(id, message) =>
                 cb_friend_request(bot, id, &message),
-            GroupInvite(friendnumber, kind, key) =>
-                cb_group_invite(bot, friendnumber, kind, key),
-            GroupNamelistChange(groupnumber, peernumber, change) =>
-                cb_group_namelist_change(bot, groupnumber, peernumber, change),
-            GroupMessage(groupnumber, peernumber, message) =>
-                cb_group_message(bot, groupnumber, peernumber, &message),
+            ConferenceInvite { friend, kind, cookie } =>
+                cb_group_invite(bot, friend, kind, &cookie),
+            ConferencePeerListChanged { conference } =>
+                cb_group_peerlist_change(bot, conference),
+            ConferencePeerName { conference, peer, name } =>
+                cb_group_peername_change(bot, conference, peer, &name),
+            ConferenceMessage { conference, peer, kind: _, message } =>
+                cb_group_message(bot, conference, peer, &message),
             _ => (),
         }
     }

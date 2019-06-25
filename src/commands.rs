@@ -49,24 +49,24 @@ lazy_static! {
 
 struct Command {
     name: String,
-    func: fn(bot: &mut Bot, groupnumber: i32, peernumber: i32),
+    func: fn(bot: &mut Bot, groupnumber: u32, peernumber: u32),
 }
 
 impl Command {
-    fn new(name: &str, func: fn(bot: &mut Bot, groupnumber: i32, peernumber: i32)) -> Command {
+    fn new(name: &str, func: fn(bot: &mut Bot, groupnumber: u32, peernumber: u32)) -> Command {
         Command {
             name: name.to_string(),
             func: func,
         }
     }
 
-    fn do_command(&self, bot: &mut Bot, groupnumber: i32, peernumber: i32) {
+    fn do_command(&self, bot: &mut Bot, groupnumber: u32, peernumber: u32) {
         let func = self.func;
         func(bot, groupnumber, peernumber);
     }
 }
 
-pub fn execute(bot: &mut Bot, groupnumber: i32, peernumber: i32, command: &str)
+pub fn execute(bot: &mut Bot, groupnumber: u32, peernumber: u32, command: &str)
 {
     for c in COMMANDS.iter() {
         if c.name == command {
@@ -75,7 +75,7 @@ pub fn execute(bot: &mut Bot, groupnumber: i32, peernumber: i32, command: &str)
     }
 }
 
-fn cmd_disable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_disable(bot: &mut Bot, groupnumber: u32, peernumber: u32)
 {
     if !check_privilege(bot, groupnumber, peernumber) {
         return;
@@ -90,7 +90,7 @@ fn cmd_disable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.groups[index].send_message(bot.tox, "Trivia has been disabled");
 }
 
-fn cmd_enable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_enable(bot: &mut Bot, groupnumber: u32, peernumber: u32)
 {
     if !check_privilege(bot, groupnumber, peernumber) {
         return;
@@ -105,7 +105,7 @@ fn cmd_enable(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.groups[index].enable_trivia();
 }
 
-fn cmd_help(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_help(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
@@ -115,7 +115,7 @@ fn cmd_help(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.groups[index].send_message(bot.tox, "Commands: !trivia !hint !score !stats !source");
 }
 
-fn cmd_hint(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_hint(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
@@ -128,7 +128,7 @@ fn cmd_hint(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.groups[index].send_message(bot.tox, &message);
 }
 
-fn cmd_quit(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_quit(bot: &mut Bot, groupnumber: u32, peernumber: u32)
 {
     if !check_privilege(bot, groupnumber, peernumber) {
         return;
@@ -143,7 +143,7 @@ fn cmd_quit(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.del_group(groupnumber);
 }
 
-fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_score(bot: &mut Bot, groupnumber: u32, peernumber: u32)
 {
     let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
         Some(key) => key.to_string(),
@@ -167,7 +167,7 @@ fn cmd_score(bot: &mut Bot, groupnumber: i32, peernumber: i32)
 }
 
 
-fn cmd_source(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_source(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
@@ -177,7 +177,7 @@ fn cmd_source(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.groups[index].send_message(bot.tox, "https://github.com/JFreegman/rustybot/");
 }
 
-fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_stats(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
@@ -209,7 +209,7 @@ fn cmd_stats(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.groups[index].send_message(bot.tox, &message);
 }
 
-fn cmd_stop(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_stop(bot: &mut Bot, groupnumber: u32, peernumber: u32)
 {
     if !check_privilege(bot, groupnumber, peernumber) {
         return;
@@ -223,7 +223,7 @@ fn cmd_stop(bot: &mut Bot, groupnumber: i32, peernumber: i32)
     bot.groups[index].end_trivia(bot.tox, &mut bot.db);
 }
 
-fn cmd_trivia(bot: &mut Bot, groupnumber: i32, peernumber: i32)
+fn cmd_trivia(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,

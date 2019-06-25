@@ -1,5 +1,5 @@
 *.lock
+data/masterkeys
 data/profile.tox
 data/scores.db
-data/masterkeys
 target/

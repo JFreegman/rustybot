@@ -56,11 +56,11 @@ impl<'a> Bot<'a> {
         match save_data(PROFILE_DATA_PATH, &data) {
             Ok(_) => (),
             Err(e) => println!("save_data failed: {}", e),
-        }
+        };
     }
 
-    pub fn add_group(&mut self, friendnumber: i32, key: Vec<u8>) {
-        match self.tox.join_groupchat(friendnumber, &key) {
+    pub fn add_group(&mut self, friendnumber: u32, cookie: &Cookie) {
+        match self.tox.join_conference(friendnumber, cookie) {
             Ok(groupnumber)  => {
                 let friend_pk = match self.tox.get_friend_public_key(friendnumber as u32) {
                     Some(friend_pk) => friend_pk.to_string(),
@@ -75,27 +75,22 @@ impl<'a> Bot<'a> {
         };
     }
 
-    pub fn del_group(&mut self, groupnumber: i32) {
+    pub fn del_group(&mut self, groupnumber: u32) {
         let index = match get_group_index(self, groupnumber) {
             Some(index) => index,
             None => return println!("Failed to find index for groupnumber {}", groupnumber),
         };
 
         self.groups.remove(index);
-
-        match self.tox.del_groupchat(groupnumber) {
-            Ok(_)  => (),
-            Err(e) => return println!("Core failed to delete group{}: {:?}", groupnumber, e),
-        }
-
+        self.tox.delete_conference(groupnumber);
         println!("Leaving group {}", groupnumber);
     }
 
     /* Updates the nick in both the respective group's peerlist, and in the database */
     pub fn update_nick(&mut self, group_index: usize, nick: &str, public_key: &str) {
         let peer_idx = match get_peer_index(&mut self.groups[group_index].peers, public_key) {
-            Some(index) => index,
-            None        => return,
+            Some(idx) => idx,
+            None      => return,
         };
 
         self.groups[group_index].peers[peer_idx].set_nick(nick);

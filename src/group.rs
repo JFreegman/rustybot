@@ -34,9 +34,9 @@ pub struct Peer {
 }
 
 impl Peer {
-    pub fn new(public_key: String) -> Peer {
+    pub fn new(public_key: String, nick: String) -> Peer {
         Peer {
-            nick: "Anonymous".to_string(),
+            nick: nick,
             public_key: public_key,
             round_score: 0,
         }
@@ -64,14 +64,14 @@ impl Peer {
 }
 
 pub struct GroupChat {
-    pub groupnumber: i32,
+    pub groupnumber: u32,
     pub trivia:      Trivia,
     pub peers:       Vec<Peer>,
     pub owner_pk:    String,   // Public key of the friend who invited the bot to the group
 }
 
 impl GroupChat {
-    pub fn new(groupnumber: i32, public_key: String) -> GroupChat {
+    pub fn new(groupnumber: u32, public_key: String) -> GroupChat {
         GroupChat {
             groupnumber: groupnumber,
             trivia: Trivia::new(),
@@ -80,24 +80,11 @@ impl GroupChat {
         }
     }
 
-    pub fn add_peer(&mut self, public_key: &str) {
-        self.peers.push(Peer::new(public_key.to_string()));
-    }
-
-    pub fn del_peer(&mut self, public_key: &str) {
-        let index = match get_peer_index(&mut self.peers, public_key) {
-            Some(index) => index,
-            None        => return,
-        };
-
-        self.peers.remove(index);
-    }
-
     pub fn send_message(&self, tox: &mut Tox, message: &str) {
-        match tox.group_message_send(self.groupnumber, message) {
+        match tox.send_conference_message(self.groupnumber, MessageType::Normal, message) {
             Ok(_)  => (),
             Err(e) => println!("Failed to send message to group {}: {:?}", self.groupnumber, e),
-        }
+        };
     }
 
     /* Returns true if game is started */
@@ -195,7 +182,7 @@ impl GroupChat {
     }
 }
 
-pub fn get_group_index(bot: &mut Bot, groupnumber: i32) -> Option<usize>
+pub fn get_group_index(bot: &mut Bot, groupnumber: u32) -> Option<usize>
 {
     let index = match bot.groups.iter().position(|g| g.groupnumber == groupnumber) {
         Some(index) => Some(index),
@@ -215,11 +202,11 @@ pub fn get_peer_index(peers: &mut Vec<Peer>, public_key: &str) -> Option<usize>
     index
 }
 
-pub fn get_peer_public_key(tox: &mut Tox, groupnumber: i32, peernumber: i32) -> Option<String>
+pub fn get_peer_public_key(tox: &mut Tox, groupnumber: u32, peernumber: u32) -> Option<String>
 {
-    let public_key = match tox.group_peer_pubkey(groupnumber, peernumber) {
-        Some(key) => Some(key.to_string()),
-        None      => None,
+    let public_key = match tox.get_peer_public_key(groupnumber, peernumber) {
+        Ok(key) => Some(key.to_string()),
+        Err(_)      => None,
     };
 
     public_key

@@ -20,7 +20,8 @@
  *
  */
 
-use rand::*;
+use rand::seq::SliceRandom;
+use rand::{Rng, thread_rng};
 use time::{get_time, Timespec, Duration};
 use bot::Bot;
 use std::fmt::Write;
@@ -97,7 +98,8 @@ impl Trivia {
             return false;
         }
 
-        let idx = thread_rng().gen_range(0, questions.len());
+        let mut rng = thread_rng();
+        let idx = rng.gen_range(0, questions.len());
         let split: Vec<&str> = questions[idx].split("`").collect();
 
         self.hint_count = 0;
@@ -163,7 +165,9 @@ fn generate_hints(answer: &str) -> Vec<String>
         }
     }
 
-    thread_rng().shuffle(&mut indices);
+    let mut rng = thread_rng();
+    indices.shuffle(&mut rng);
+
     let num_hints = ((len / 2) / NUM_CHARS_PER_HINT) + 1;
 
     for _ in 0..num_hints {
@@ -184,7 +188,7 @@ fn generate_hints(answer: &str) -> Vec<String>
     hints
 }
 
-pub fn process_answer(bot: &mut Bot, groupnumber: i32, peernumber: i32, message: &str)
+pub fn process_answer(bot: &mut Bot, groupnumber: u32, peernumber: u32, message: &str)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,

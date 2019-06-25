@@ -49,10 +49,13 @@ pub fn open_file<P: AsRef<Path>>(path: P, create: bool) -> Option<File>
 {
     let mut options = OpenOptions::new();
 
-    match options.read(true).create(create).open(&path) {
+    match options.read(true).create(create).append(true).open(&path) {
         Ok(fp) => return Some(fp),
-        Err(_) => return None,
-    }
+        Err(e) => {
+            println!("Failed to open file with error: {}", Error::description(&e));
+            return None;
+        },
+    };
 }
 
 /* Saves an arbitrary byte vector to path_name. */

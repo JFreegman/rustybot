@@ -132,6 +132,7 @@ impl DataBase {
     }
 
     pub fn load(&mut self) {
+        println!("Opening: {}", DATABASE_PATH);
         let fp = match open_file(DATABASE_PATH, true) {
             Some(fp) => fp,
             None   => return,
@@ -146,7 +147,7 @@ impl DataBase {
         };
 
         if size == 0 {
-            return;
+            return println!("No database to load.");
         }
 
         if size % DB_ENTRY_FORMAT_SIZE != 0 {
@@ -213,5 +214,7 @@ impl DataBase {
 
             self.hashmap.insert(key.to_string(), entry);
         }
+
+        println!("Database loaded {} entries", num);
     }
 }

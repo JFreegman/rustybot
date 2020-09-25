@@ -20,7 +20,6 @@
  *
  */
 
-use std::error::Error;
 use std::fs::{OpenOptions, File};
 use std::path::Path;
 use std::io::prelude::*;
@@ -52,7 +51,7 @@ pub fn open_file<P: AsRef<Path>>(path: P, create: bool) -> Option<File>
     match options.read(true).create(create).append(true).open(&path) {
         Ok(fp) => return Some(fp),
         Err(e) => {
-            println!("Failed to open file with error: {}", Error::description(&e));
+            println!("Failed to open file with error: {}", e);
             return None;
         },
     };
@@ -65,13 +64,13 @@ pub fn save_data(path_name: &str, data: &Vec<u8>) -> Result<usize, String>
     let display = path.display();
     let mut options = OpenOptions::new();
 
-    let fp = try!(options.write(true).create(true).open(&path)
-                         .map_err(|e| format!("Couldn't open file {}: {}", display, Error::description(&e))));
+    let fp = options.write(true).create(true).open(&path)
+                    .map_err(|e| format!("Couldn't open file {}: {}", display, e))?;
 
     let mut writer = BufWriter::new(&fp);
 
-    let size = try!(writer.write(&data)
-                          .map_err(|e| format!("Couldn't write to file {}: {}", display, Error::description(&e))));
+    let size = writer.write(&data)
+                     .map_err(|e| format!("Couldn't write to file {}: {}", display, e))?;
     Ok(size)
 }
 

@@ -20,7 +20,6 @@
  *
  */
 
-use std::error::Error;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::collections::HashMap;
@@ -34,11 +33,11 @@ const DATABASE_PATH: &'static str = "data/scores.db";
 const DB_NICK_SIZE: usize = 32;
 
 // Size of the database keys
-const DB_KEY_SIZE: usize = (PUBLIC_KEY_SIZE * 2);
+const DB_KEY_SIZE: usize = PUBLIC_KEY_SIZE * 2;
 
 // Number of bytes in a database entry in serialized form.
 // Key, nick length, nick, points, rounds won, games won
-const DB_ENTRY_FORMAT_SIZE: usize = (DB_KEY_SIZE + SIZE_U32 + DB_NICK_SIZE + SIZE_U64 + SIZE_U32 + SIZE_U32);
+const DB_ENTRY_FORMAT_SIZE: usize = DB_KEY_SIZE + SIZE_U32 + DB_NICK_SIZE + SIZE_U64 + SIZE_U32 + SIZE_U32;
 
 pub struct DBentry {
     pub nick:       String,   // The last nick this entry is associated with
@@ -143,7 +142,7 @@ impl DataBase {
 
         let size = match reader.read_to_end(&mut buf) {
             Ok(size) => size,
-            Err(e) => return println!("Failed to read database to buffer: {}", Error::description(&e)),
+            Err(e) => return println!("Failed to read database to buffer: {}", e),
         };
 
         if size == 0 {
@@ -189,7 +188,6 @@ impl DataBase {
             // Skip nick padding
             if nick_len < DB_NICK_SIZE {
                 let padding = DB_NICK_SIZE - nick_len;
-                start = start + padding;
                 end = end + padding;
             }
 

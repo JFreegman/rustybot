@@ -28,7 +28,6 @@ extern crate rstox;
 extern crate byteorder;
 extern crate ctrlc;
 
-use std::error::Error;
 use std::fs::File;
 use std::path::Path;
 use std::io::prelude::*;
@@ -63,9 +62,9 @@ const BOOTSTRAP_INTERVAL: i64 = 10;
 const MAX_BOOTSTRAP_NODES: usize = 5;
 
 // Use in case DHTnodes file fails to load
-const BOOTSTRAP_IP: &'static str = "144.76.60.215";
+const BOOTSTRAP_IP: &'static str = "144.217.167.73";
 const BOOTSTRAP_PORT: u16 = 33445;
-const BOOTSTRAP_KEY: &'static str = "04119E835DF3E78BACF0F84235B300546AF8B936F035185E2A8E9E0A67C8924F";
+const BOOTSTRAP_KEY: &'static str = "7E5668E0EE09E19F320AD47902419331FFEE147BB3606769CFBE921A2A2FD34C";
 
 fn load_tox() -> Option<Tox>
 {
@@ -92,7 +91,7 @@ fn load_tox() -> Option<Tox>
     match reader.read_to_end(&mut buf) {
         Ok(_) => (),
         Err(e) => {
-            println!("Failed to read tox data to buffer: {}", Error::description(&e));
+            println!("Failed to read tox data to buffer: {}", e);
             return None;
         }
     };
@@ -146,7 +145,7 @@ fn bootstrap_tox(bot: &mut Bot)
     let mut fp = match File::open(&path) {
         Ok(fp) => fp,
         Err(e) => {
-            println!("Failed to open file {}: {}", display, Error::description(&e));
+            println!("Failed to open file {}: {}", display, e);
             bootstrap_backup(bot.tox);
             return;
         }
@@ -157,7 +156,7 @@ fn bootstrap_tox(bot: &mut Bot)
     match fp.read_to_string(&mut nodes_str) {
         Ok(_)  => (),
         Err(e) => {
-            println!("Failed to read file {}: {}", display, Error::description(&e));
+            println!("Failed to read file {}: {}", display, e);
             bootstrap_backup(bot.tox);
             return;
         }
@@ -203,8 +202,8 @@ fn load_trivia_questions(bot: &mut Bot) -> Result<(), String>
     let display = path.display();
     let mut questions = String::new();
 
-    let mut fp = try!(File::open(&path).map_err(|e| format!("Open failed on file {}: {}", display, Error::description(&e))));
-    try!(fp.read_to_string(&mut questions).map_err(|e| format!("Read failed on file {}: {}", display, Error::description(&e))));
+    let mut fp = File::open(&path).map_err(|e| format!("Open failed on file {}: {}", display, e))?;
+    fp.read_to_string(&mut questions).map_err(|e| format!("Read failed on file {}: {}", display, e))?;
 
     for line in questions.split("\n") {
         bot.questions.push(line.to_string());
@@ -230,7 +229,7 @@ fn check_privilege(bot: &mut Bot, groupnumber: u32, peernumber: u32) -> bool
     let mut fp = match File::open(&path) {
         Ok(fp) => fp,
         Err(e) => {
-            println!("Failed to open file {}: {}", display, Error::description(&e));
+            println!("Failed to open file {}: {}", display, e);
             return false;
         }
     };
@@ -240,7 +239,7 @@ fn check_privilege(bot: &mut Bot, groupnumber: u32, peernumber: u32) -> bool
     match fp.read_to_string(&mut keys) {
         Ok(_)  => (),
         Err(e) => {
-            println!("Failed to read file {}: {}", display, Error::description(&e));
+            println!("Failed to read file {}: {}", display, e);
             return false;
         }
     };

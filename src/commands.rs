@@ -196,7 +196,7 @@ fn cmd_stats(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
     write!(&mut message, "Leaderboard:\n").unwrap();
 
     for e in entries {
-        write!(&mut message, "{}. {}....{} points....{} rounds....{} games\n",
+        write!(&mut message, "{}. {}....{} points....{} rounds....{} games won\n",
                count, e.nick, e.points, e.rounds_won, e.games_won).unwrap();
 
         if count >= MAX_LEADERBOARD_ENTRIES {

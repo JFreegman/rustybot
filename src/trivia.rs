@@ -39,9 +39,6 @@ pub const MAX_ROUNDS: u32 = 30;
 // Seconds to wait between rounds
 const ROUND_DELAY: i64 = 3;
 
-// Number of new characters to reveal per hint
-const NUM_CHARS_PER_HINT: usize = 2;
-
 pub struct Trivia {
     pub question:    String,      // Current round's question
     pub answer:      String,      // Current round's answer
@@ -193,12 +190,13 @@ fn generate_hints(answer: &str) -> Vec<String>
     let mut rng = thread_rng();
     indices.shuffle(&mut rng);
 
-    let num_hints = ((len / 2) / NUM_CHARS_PER_HINT) + 1;
+    let chars_per_hint = len / 4;
+    let num_hints = ((len / 2) / chars_per_hint) + 1;
 
     for _ in 0..num_hints {
         let mut hint = String::new();
 
-        for _ in 0..NUM_CHARS_PER_HINT {
+        for _ in 0..chars_per_hint {
             let idx = indices.pop().unwrap_or(0);
             used[idx] = true;
         }

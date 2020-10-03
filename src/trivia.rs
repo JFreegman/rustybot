@@ -140,6 +140,21 @@ impl Trivia {
     }
 }
 
+fn answer_is_year(answer: &str) -> bool
+{
+    if answer.len() != 4 {
+        return false;
+    }
+
+    for ch in answer.chars() {
+        if ch < '0' || ch > '9' {
+            return false;
+        }
+    }
+
+    answer.chars().nth(0).unwrap() == '1'
+}
+
 /* Creates a vector of hints for the current answer. Hints are ordered by least to most letters revealed. */
 fn generate_hints(answer: &str) -> Vec<String>
 {
@@ -150,6 +165,16 @@ fn generate_hints(answer: &str) -> Vec<String>
         return hints;
     }
 
+    // If answer is a year we always give first two digits
+    if answer_is_year(answer) {
+        let mut hint = String::new();
+
+        for (i, ch) in answer.chars().enumerate() {
+            hint = if i <= 1 { hint + &ch.to_string() } else { hint + "-" };
+        }
+
+        return vec![hint];
+    }
 
     let mut used = vec![false; len];  // Marks used indices
     let mut indices = Vec::new();     // Holds unused indices in random order

@@ -117,9 +117,11 @@ impl GroupChat {
                 continue;
             }
 
-            if p.round_score > best_score {
+            let pk = p.public_key.to_string();
+
+            if p.round_score > best_score && !pk.is_empty() {
                 best_score = p.round_score;
-                winner_pk = p.public_key.to_string();
+                winner_pk = pk;
             }
 
             p.clear_round();

@@ -33,6 +33,12 @@ const PUNCTUATION: &'static str = " .,':;<>/\\=-()*&^%$#@![]{}|~?\"";
 // Number of seconds before the answer is given
 const QUESTION_TIME_LIMIT: i64 = 30;
 
+// Minimum number of points to win in a round
+const BASE_POINTS: i64 = 50;
+
+// Points multiplier for time bonus
+const BONUS_POINTS_MULTIPLIER: i64 = 4;
+
 // Max number of rounds
 pub const MAX_ROUNDS: u32 = 30;
 
@@ -125,15 +131,16 @@ impl Trivia {
 
         let hint = self.hints[self.hint_count].to_string();
         self.hint_count += 1;
+
         hint
     }
 
-    /* The score is simply based on how many seconds are left in the round */
+    /* The score is based on how many seconds are left in the round and how many hints have been used */
     fn get_score(&self) -> u64 {
         let delta = Duration::seconds(QUESTION_TIME_LIMIT) - (get_time() - self.round_timer);
-        let mut t = Duration::num_seconds(&delta) + 1;
-        t = (t * t + t * 2) / 2;
-        t as u64
+        let t = Duration::num_seconds(&delta) + 1;
+        let score = (t * BONUS_POINTS_MULTIPLIER / (self.hint_count as i64 + 1)) + BASE_POINTS;
+        score as u64
     }
 }
 
@@ -149,7 +156,8 @@ fn answer_is_year(answer: &str) -> bool
         }
     }
 
-    answer.chars().nth(0).unwrap() == '1'
+    let first_char = answer.chars().nth(0).unwrap();
+    first_char == '1' || first_char == '2'
 }
 
 /* Creates a vector of hints for the current answer. Hints are ordered by least to most letters revealed. */
@@ -162,12 +170,12 @@ fn generate_hints(answer: &str) -> Vec<String>
         return hints;
     }
 
-    // If answer is a year we always give first two digits
+    // If answer is a year we always give first and third digit
     if answer_is_year(answer) {
         let mut hint = String::new();
 
         for (i, ch) in answer.chars().enumerate() {
-            hint = if i <= 1 { hint + &ch.to_string() } else { hint + "-" };
+            hint = if i % 2 == 0 { hint + &ch.to_string() } else { hint + "-" };
         }
 
         return vec![hint];

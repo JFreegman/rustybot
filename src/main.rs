@@ -313,10 +313,11 @@ fn cb_group_peerlist_change(bot: &mut Bot, groupnumber: u32)
 
         match get_peer_index(&mut bot.groups[index].peers, &public_key) {
             Some(peer_idx) => {
-                let old_nick = &bot.groups[index].peers[peer_idx].nick;
-                new_list.push(Peer::new(public_key, old_nick.to_string()));
+                let old_nick = bot.groups[index].peers[peer_idx].get_nick();
+                let round_score = bot.groups[index].peers[peer_idx].get_round_score();
+                new_list.push(Peer::new(public_key, old_nick, round_score));
             },
-            None => new_list.push(Peer::new(public_key, "Anonymous".to_string())),
+            None => new_list.push(Peer::new(public_key, "Anonymous".to_string(), 0)),
         };
     }
 
@@ -350,7 +351,7 @@ fn cb_group_peername_change(bot: &mut Bot, groupnumber: u32, peernumber: u32, na
                                  name.to_string(), groupnumber, peernumber),
     };
 
-    bot.update_nick(index, &name, &public_key);
+    bot.update_nick(index, name, &public_key);
 }
 
 fn do_tox(bot: &mut Bot)

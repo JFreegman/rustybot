@@ -34,11 +34,11 @@ pub struct Peer {
 }
 
 impl Peer {
-    pub fn new(public_key: String, nick: String) -> Peer {
+    pub fn new(public_key: String, nick: String, round_score: u64) -> Peer {
         Peer {
             nick: nick,
             public_key: public_key,
-            round_score: 0,
+            round_score: round_score,
         }
     }
 
@@ -194,7 +194,7 @@ pub fn get_group_index(bot: &mut Bot, groupnumber: u32) -> Option<usize>
     index
 }
 
-pub fn get_peer_index(peers: &mut Vec<Peer>, public_key: &str) -> Option<usize>
+pub fn get_peer_index(peers: &Vec<Peer>, public_key: &str) -> Option<usize>
 {
     let index = match peers.iter().position(|p| p.public_key == public_key) {
         Some(index) => Some(index),
@@ -208,7 +208,7 @@ pub fn get_peer_public_key(tox: &mut Tox, groupnumber: u32, peernumber: u32) -> 
 {
     let public_key = match tox.get_peer_public_key(groupnumber, peernumber) {
         Ok(key) => Some(key.to_string()),
-        Err(_)      => None,
+        Err(_)  => None,
     };
 
     public_key

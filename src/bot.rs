@@ -97,7 +97,7 @@ impl<'a> Bot<'a> {
     pub fn update_nick(&mut self, group_index: usize, nick: &str, public_key: &str) {
         let peer_idx = match get_peer_index(&mut self.groups[group_index].peers, public_key) {
             Some(idx) => idx,
-            None      => return,
+            None => return println!("get_peer_index() failed in update_nick() for: {}", nick.to_string()),
         };
 
         self.groups[group_index].peers[peer_idx].set_nick(nick);

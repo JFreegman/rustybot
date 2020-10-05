@@ -223,7 +223,7 @@ pub fn process_answer(bot: &mut Bot, groupnumber: u32, peernumber: u32, message:
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
-        None        => return,
+        None => return println!("get_group_index() failed in process_answer() for groupnumber {}", groupnumber),
     };
 
     if !bot.groups[index].trivia.running {
@@ -240,12 +240,13 @@ pub fn process_answer(bot: &mut Bot, groupnumber: u32, peernumber: u32, message:
 
     let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
         Some(key) => key,
-        None      => return,
+        None => return println!("get_peer_public_key() failed in process_answer() for groupnumber {}, peernumber {}",
+                                     groupnumber, peernumber),
     };
 
     let peer_idx = match get_peer_index(&mut bot.groups[index].peers, &public_key) {
         Some(idx) => idx,
-        None      => return,
+        None => return println!("get_peer_index() failed in process_answer() for public_key {:?}", public_key.to_string()),
     };
 
     let points = bot.groups[index].trivia.get_score();

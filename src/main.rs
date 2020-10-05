@@ -299,7 +299,7 @@ fn cb_group_peerlist_change(bot: &mut Bot, groupnumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
-        None        => return,
+        None => return println!("get_group_index() failed in cb_group_peerlist_change() for groupnumber {}", groupnumber),
     };
 
     let num_peers = bot.tox.conference_peer_count(groupnumber).unwrap();
@@ -339,16 +339,18 @@ fn cb_group_message(bot: &mut Bot, groupnumber: u32, peernumber: u32, message: &
 fn cb_group_peername_change(bot: &mut Bot, groupnumber: u32, peernumber: u32, name: &str)
 {
     let index = match get_group_index(bot, groupnumber) {
-        Some(index) => index as u32,
-        None        => return,
+        Some(index) => index,
+        None =>  return println!("cb_group_peername_change() failed to get group index for {} (group {}, peer {})",
+                                 name.to_string(), groupnumber, peernumber),
     };
 
     let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
         Some(public_key) => public_key,
-        None             => return,
+        None => return println!("cb_group_peername_change() failed to get group pk for {} (group {}, peer {})",
+                                 name.to_string(), groupnumber, peernumber),
     };
 
-    bot.update_nick(index as usize, &name, &public_key);
+    bot.update_nick(index, &name, &public_key);
 }
 
 fn do_tox(bot: &mut Bot)

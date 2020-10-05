@@ -153,8 +153,8 @@ fn cmd_score(bot: &mut Bot, groupnumber: u32, peernumber: u32)
     let mut message = String::new();
 
     match bot.db.get_entry(&public_key) {
-        Some(stats) => write!(&mut message, "{}: Games won: {}, Rounds won: {}, Total points: {}",
-                             stats.nick, stats.games_won, stats.rounds_won, stats.points).unwrap(),
+        Some(stats) => write!(&mut message, "{} - Tot. points...{}, Rounds won...{}, Games won...{}",
+                             stats.nick, stats.points, stats.rounds_won, stats.games_won).unwrap(),
         None => write!(&mut message, "No entry found").unwrap(),
     }
 
@@ -196,8 +196,8 @@ fn cmd_stats(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
     write!(&mut message, "Leaderboard:\n").unwrap();
 
     for e in entries {
-        write!(&mut message, "{}. {}....{} points....{} rounds....{} games won\n",
-               count, e.nick, e.points, e.rounds_won, e.games_won).unwrap();
+        write!(&mut message, "{}. {} - Games won...{}, Rounds won...{}, Tot. points...{}\n",
+               count, e.nick, e.games_won, e.rounds_won, e.points).unwrap();
 
         if count >= MAX_LEADERBOARD_ENTRIES {
             break;
@@ -220,7 +220,7 @@ fn cmd_stop(bot: &mut Bot, groupnumber: u32, peernumber: u32)
         None        => return,
     };
 
-    bot.groups[index].end_trivia(bot.tox, &mut bot.db);
+    bot.groups[index].abort_game(bot.tox, &mut bot.db);
 }
 
 fn cmd_trivia(bot: &mut Bot, groupnumber: u32, _peernumber: u32)

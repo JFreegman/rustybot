@@ -133,17 +133,3 @@ pub fn bytes_le_to_u64(buf: &[u8]) -> u64
     let mut temp = Cursor::new(buf);
     temp.read_u64::<LittleEndian>().unwrap_or(0)
 }
-
-/* Returns the count of a given character within a string */
-pub fn char_count(s: &str, c: char) -> usize
-{
-    let mut count = 0;
-
-    for ch in s.chars() {
-        if ch == c {
-            count += 1;
-        }
-    }
-
-    count
-}

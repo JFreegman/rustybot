@@ -34,7 +34,7 @@ const PUNCTUATION: &'static str = " .,':;<>/\\=-()*&^%$#@![]{}|~?\"";
 const QUESTION_TIME_LIMIT: i64 = 30;
 
 // Minimum number of points to win in a round
-const BASE_POINTS: i64 = 50;
+const BASE_POINTS: i64 = 30;
 
 // Points multiplier for time bonus
 const BONUS_POINTS_MULTIPLIER: i64 = 4;
@@ -125,12 +125,10 @@ impl Trivia {
             return "Cram it".to_string();
         }
 
-        if self.hints.len() <= self.hint_count || char_count(&self.hints[self.hint_count], '-') < 2 {
-            return "No more hints".to_string();
-        }
-
-        let hint = self.hints[self.hint_count].to_string();
-        self.hint_count += 1;
+        let hint = match self.hints.pop() {
+            Some(hint) => hint.to_string(),
+            None       => "No more hints".to_string(),
+        };
 
         hint
     }
@@ -216,7 +214,7 @@ fn generate_hints(answer: &str) -> Vec<String>
         hints.push(hint);
     }
 
-    hints
+    hints.into_iter().rev().collect()
 }
 
 pub fn process_answer(bot: &mut Bot, groupnumber: u32, peernumber: u32, message: &str)

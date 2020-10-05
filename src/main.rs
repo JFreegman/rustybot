@@ -311,7 +311,7 @@ fn cb_group_peerlist_change(bot: &mut Bot, groupnumber: u32)
             Err(_) => continue,
         };
 
-        match get_peer_index(&mut bot.groups[index].peers, &public_key) {
+        match get_peer_index(&bot.groups[index].peers, &public_key) {
             Some(peer_idx) => {
                 let old_nick = bot.groups[index].peers[peer_idx].get_nick();
                 let round_score = bot.groups[index].peers[peer_idx].get_round_score();

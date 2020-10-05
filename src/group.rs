@@ -153,6 +153,22 @@ impl GroupChat {
         db.save();
     }
 
+    pub fn abort_game(&mut self, tox: &mut Tox, db: &mut DataBase) {
+        if !self.trivia.running {
+            return;
+        }
+
+        self.trivia.reset();
+
+        for p in &mut self.peers {
+            p.clear_round();
+        }
+
+        self.send_message(tox, "Game aborted.");
+
+        db.save();
+    }
+
     pub fn enable_trivia(&mut self) {
         self.trivia.disabled = false;
     }

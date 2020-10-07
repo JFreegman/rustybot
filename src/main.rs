@@ -311,14 +311,21 @@ fn cb_group_peerlist_change(bot: &mut Bot, groupnumber: u32)
             Err(_) => continue,
         };
 
-        match get_peer_index(&bot.groups[index].peers, &public_key) {
-            Some(peer_idx) => {
-                let old_nick = bot.groups[index].peers[peer_idx].get_nick();
-                let round_score = bot.groups[index].peers[peer_idx].get_round_score();
-                new_list.push(Peer::new(public_key, old_nick, round_score));
+        let name = match bot.tox.get_peer_name(groupnumber, i) {
+            Ok(name) => name,
+            Err(e) => {
+                println!("cb_group_peerlist_change() failed to fetch name for peer {}: {:?} (error: {:?})", i, public_key, e);
+                continue;
             },
-            None => new_list.push(Peer::new(public_key, "Anonymous".to_string(), 0)),
         };
+
+        let round_score = match get_peer_index(&bot.groups[index].peers, &public_key) {
+            Some(peer_idx) => bot.groups[index].peers[peer_idx].get_round_score(),
+            None => 0,
+        };
+
+        bot.db.set_nick(&name, &public_key);
+        new_list.push(Peer::new(public_key, name, round_score));
     }
 
     bot.groups[index].peers = new_list;
@@ -337,21 +344,9 @@ fn cb_group_message(bot: &mut Bot, groupnumber: u32, peernumber: u32, message: &
     }
 }
 
-fn cb_group_peername_change(bot: &mut Bot, groupnumber: u32, peernumber: u32, name: &str)
+fn cb_group_peername_change(bot: &mut Bot, groupnumber: u32, _peernumber: u32, _name: &str)
 {
-    let index = match get_group_index(bot, groupnumber) {
-        Some(index) => index,
-        None =>  return println!("cb_group_peername_change() failed to get group index for {} (group {}, peer {})",
-                                 name.to_string(), groupnumber, peernumber),
-    };
-
-    let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
-        Some(public_key) => public_key,
-        None => return println!("cb_group_peername_change() failed to get group pk for {} (group {}, peer {})",
-                                 name.to_string(), groupnumber, peernumber),
-    };
-
-    bot.update_nick(index, name, &public_key);
+    cb_group_peerlist_change(bot, groupnumber);
 }
 
 fn do_tox(bot: &mut Bot)

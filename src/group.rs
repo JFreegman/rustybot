@@ -46,10 +46,6 @@ impl Peer {
         self.nick.to_string()
     }
 
-    pub fn set_nick(&mut self, nick: &str) {
-        self.nick = nick.to_string();
-    }
-
     pub fn update_round_score(&mut self, points: u64) {
         self.round_score += points;
     }

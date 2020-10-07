@@ -22,7 +22,7 @@
 
 use time::Timespec;
 use rstox::core::*;
-use group::{GroupChat, get_group_index, get_peer_index};
+use group::{GroupChat, get_group_index};
 use db::*;
 use util::*;
 
@@ -91,17 +91,6 @@ impl<'a> Bot<'a> {
         for g in &self.groups {
             self.tox.delete_conference(g.groupnumber);
         }
-    }
-
-    /* Updates the nick in both the respective group's peerlist, and in the database */
-    pub fn update_nick(&mut self, group_index: usize, nick: &str, public_key: &str) {
-        let peer_idx = match get_peer_index(&self.groups[group_index].peers, public_key) {
-            Some(idx) => idx,
-            None => return println!("get_peer_index() failed in update_nick() for: {}", nick.to_string()),
-        };
-
-        self.groups[group_index].peers[peer_idx].set_nick(nick);
-        self.db.set_nick(nick, public_key);
     }
 
     pub fn print_info(&self) {

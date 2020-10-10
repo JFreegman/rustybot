@@ -211,26 +211,45 @@ fn cmd_stats(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
 
 fn cmd_stop(bot: &mut Bot, groupnumber: u32, peernumber: u32)
 {
-    if !check_privilege(bot, groupnumber, peernumber) {
-        return;
-    }
-
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
         None        => return,
     };
 
-    bot.groups[index].abort_game(bot.tox, &mut bot.db);
+    if check_privilege(bot, groupnumber, peernumber) {
+        bot.groups[index].abort_game(bot.tox, &mut bot.db, true);
+        return;
+    }
+
+    match get_peer_public_key(bot.tox, groupnumber, peernumber) {
+        Some(pk) => {
+            if pk.to_string() == bot.groups[index].trivia.owner_key {
+                bot.groups[index].abort_game(bot.tox, &mut bot.db, false);
+            }
+        },
+        None => {
+            println!("cmd_stop(): Failed to fetch peer {}'s key in group {}", peernumber, groupnumber);
+            return;
+        }
+    };
 }
 
-fn cmd_trivia(bot: &mut Bot, groupnumber: u32, _peernumber: u32)
+fn cmd_trivia(bot: &mut Bot, groupnumber: u32, peernumber: u32)
 {
     let index = match get_group_index(bot, groupnumber) {
         Some(index) => index,
         None        => return,
     };
 
-    if bot.groups[index].start_trivia(bot.tox) {
+    let public_key = match get_peer_public_key(bot.tox, groupnumber, peernumber) {
+        Some(pk) => pk,
+        None => {
+            println!("cmd_trivia(): Failed to fetch peer {}'s key in group {}", peernumber, groupnumber);
+            return;
+        }
+    };
+
+    if bot.groups[index].start_trivia(bot.tox, &public_key) {
         bot.groups[index].send_message(bot.tox, "Trivia time!");
     }
 }

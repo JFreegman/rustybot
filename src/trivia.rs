@@ -56,6 +56,7 @@ pub struct Trivia {
     pub end_timer:   Timespec,    // Time since last round ended
     pub winner:      bool,        // True if the round has been won
     pub disabled:    bool,        // True if trivia has been disabled
+    pub owner_key:   String,      // The owner of this particular round (enables !stop command)
 }
 
 impl Trivia {
@@ -71,6 +72,7 @@ impl Trivia {
             end_timer: Timespec::new(0, 0),
             winner: false,
             disabled: false,
+            owner_key: String::new(),
         }
     }
 
@@ -84,10 +86,12 @@ impl Trivia {
         self.round_timer = Timespec::new(0, 0);
         self.end_timer = Timespec::new(0, 0);
         self.winner = false;
+        self.owner_key.clear();
     }
 
-    pub fn new_game(&mut self) {
+    pub fn new_game(&mut self, owner_key: &str) {
         self.running = true;
+        self.owner_key = owner_key.to_string();
     }
 
     /* Returns true if a new round is successfully set up */

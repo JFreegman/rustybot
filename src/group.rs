@@ -84,7 +84,7 @@ impl GroupChat {
     }
 
     /* Returns true if game is started */
-    pub fn start_trivia(&mut self, tox: &mut Tox) -> bool {
+    pub fn start_trivia(&mut self, tox: &mut Tox, owner_key: &str) -> bool {
         if self.trivia.running {
             return false;
         }
@@ -94,7 +94,7 @@ impl GroupChat {
             return false;
         }
 
-        self.trivia.new_game();
+        self.trivia.new_game(owner_key);
         true
     }
 
@@ -153,9 +153,19 @@ impl GroupChat {
         db.save();
     }
 
-    pub fn abort_game(&mut self, tox: &mut Tox, db: &mut DataBase) {
+    pub fn abort_game(&mut self, tox: &mut Tox, db: &mut DataBase, privileged: bool) {
         if !self.trivia.running {
             return;
+        }
+
+        // if we're not privileged but but we own this game of trivia we can only stop
+        // the game if no other peers have a positive score
+        if !privileged {
+            for p in &mut self.peers {
+                if p.round_score > 0 && p.public_key != self.trivia.owner_key {
+                    return;
+                }
+            }
         }
 
         self.trivia.reset();

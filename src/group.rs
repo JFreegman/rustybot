@@ -104,48 +104,52 @@ impl GroupChat {
         }
 
         self.trivia.reset();
-
+        let mut winners = Vec::new();
         let mut winner_pk = String::new();
+        let mut winner_name = String::new();
         let mut best_score = 0;
 
-        for p in &mut self.peers {
+        for p in &self.peers {
             if p.round_score == 0 {
                 continue;
             }
 
             let pk = p.public_key.to_string();
 
+            match get_peer_index(&self.peers, &pk) {
+                Some(index) => winners.push(index),
+                None => continue,
+            };
+
             if p.round_score > best_score && !pk.is_empty() {
                 best_score = p.round_score;
                 winner_pk = pk;
+                winner_name = p.get_nick();
             }
-
-            p.clear_round();
-        }
-
-        if best_score == 0 || winner_pk.is_empty() {
-            self.send_message(tox, "Game over. Type !stats to see the leaderboard.");
-            return;
         }
 
         let mut message = String::new();
 
-        let index = match get_peer_index(&mut self.peers, &winner_pk) {
-            Some(index) => index,
-            None => {
-                self.send_message(tox, "Game over. Type !stats to see the leaderboard.");
-                return;
-            }
-        };
+        if winners.is_empty() {
+            write!(&mut message, "Game over.\n").unwrap();
+            self.send_message(tox, &message);
+            return;
+        }
 
+        write!(&mut message, "Game over. The winner is {}! Scoreboard:\n", winner_name).unwrap();
 
-        let peername = self.peers[index].get_nick();
-        write!(&mut message, "{} won the game with {} points. Type !stats to see the leaderboard.",
-                peername, best_score).unwrap();
+        winners.sort_by(|a, b| self.peers[*a].round_score.cmp(&self.peers[*b].round_score).reverse());
+
+        for &index in winners.iter() {
+            let score = self.peers[index].round_score;
+            let peername = self.peers[index].get_nick();
+            self.peers[index].clear_round();
+            write!(&mut message, "{}: {}\n", peername, score).unwrap();
+        }
 
         self.send_message(tox, &message);
 
-        db.update_score(&peername, &winner_pk, 0);
+        db.update_score(&winner_name, &winner_pk, 0);
         db.save();
     }
 

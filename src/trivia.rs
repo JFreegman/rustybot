@@ -40,7 +40,7 @@ const BASE_POINTS: i64 = 30;
 const BONUS_POINTS_MULTIPLIER: i64 = 4;
 
 // Max number of rounds
-pub const MAX_ROUNDS: u32 = 30;
+pub const MAX_ROUNDS: u32 = 4;
 
 // Seconds to wait between rounds
 const ROUND_DELAY: i64 = 3;

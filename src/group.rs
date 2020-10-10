@@ -121,10 +121,14 @@ impl GroupChat {
                 None => continue,
             };
 
+            let peername = p.get_nick();
+
+            db.update_score(&peername, &pk, p.round_score);
+
             if p.round_score > best_score && !pk.is_empty() {
                 best_score = p.round_score;
                 winner_pk = pk;
-                winner_name = p.get_nick();
+                winner_name = peername;
             }
         }
 
@@ -136,15 +140,16 @@ impl GroupChat {
             return;
         }
 
-        write!(&mut message, "Game over. The winner is {}! Scoreboard:\n", winner_name).unwrap();
+        write!(&mut message, "Game over. The winner is {}!\nScoreboard:\n", winner_name).unwrap();
 
         winners.sort_by(|a, b| self.peers[*a].round_score.cmp(&self.peers[*b].round_score).reverse());
 
         for &index in winners.iter() {
             let score = self.peers[index].round_score;
             let peername = self.peers[index].get_nick();
-            self.peers[index].clear_round();
             write!(&mut message, "{}: {}\n", peername, score).unwrap();
+
+            self.peers[index].clear_round();
         }
 
         self.send_message(tox, &message);
@@ -153,7 +158,7 @@ impl GroupChat {
         db.save();
     }
 
-    pub fn abort_game(&mut self, tox: &mut Tox, db: &mut DataBase, privileged: bool) {
+    pub fn abort_game(&mut self, tox: &mut Tox, privileged: bool) {
         if !self.trivia.running {
             return;
         }
@@ -175,8 +180,6 @@ impl GroupChat {
         }
 
         self.send_message(tox, "Game aborted.");
-
-        db.save();
     }
 
     pub fn enable_trivia(&mut self) {

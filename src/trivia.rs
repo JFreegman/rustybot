@@ -40,7 +40,7 @@ const BASE_POINTS: i64 = 30;
 const BONUS_POINTS_MULTIPLIER: i64 = 4;
 
 // Max number of rounds
-pub const MAX_ROUNDS: u32 = 4;
+pub const MAX_ROUNDS: u32 = 30;
 
 // Seconds to wait between rounds
 const ROUND_DELAY: i64 = 3;
@@ -263,8 +263,6 @@ pub fn process_answer(bot: &mut Bot, groupnumber: u32, peernumber: u32, message:
     bot.groups[index].trivia.winner = true;
     bot.groups[index].trivia.end_timer = get_time();
     bot.groups[index].trivia.round_timer = Timespec::new(0, 0);
-
-    bot.db.update_score(&peername, &public_key, points);
 }
 
 pub fn do_trivia(bot: &mut Bot)

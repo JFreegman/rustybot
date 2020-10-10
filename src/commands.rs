@@ -217,14 +217,14 @@ fn cmd_stop(bot: &mut Bot, groupnumber: u32, peernumber: u32)
     };
 
     if check_privilege(bot, groupnumber, peernumber) {
-        bot.groups[index].abort_game(bot.tox, &mut bot.db, true);
+        bot.groups[index].abort_game(bot.tox, true);
         return;
     }
 
     match get_peer_public_key(bot.tox, groupnumber, peernumber) {
         Some(pk) => {
             if pk.to_string() == bot.groups[index].trivia.owner_key {
-                bot.groups[index].abort_game(bot.tox, &mut bot.db, false);
+                bot.groups[index].abort_game(bot.tox, false);
             }
         },
         None => {

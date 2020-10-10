@@ -1,7 +1,7 @@
 [package]
 
 name = "rustybot"
-version = "2.0.0"
+version = "2.1.0"
 authors = [ "Jfreegman <Jfreegman@gmail.com>" ]
 
 [dependencies]
@@ -13,6 +13,7 @@ ctrlc = "3.1.6"
 
 [dependencies.rstox]
 git = "https://github.com/JFreegman/rstox.git"
+#path = "../rstox"
 
 [profile.dev]
 debug = true

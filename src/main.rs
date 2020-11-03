@@ -389,6 +389,8 @@ fn do_rustybot(bot: &mut Bot)
 fn kill(bot: &mut Bot)
 {
     bot.leave_all_groups();
+    bot.save();
+
     println!("Exiting");
 }
 

@@ -85,6 +85,8 @@ impl<'a> Bot<'a> {
         self.tox.delete_conference(groupnumber);
 
         println!("Leaving group {}", groupnumber);
+
+        self.save();
     }
 
     pub fn leave_all_groups(&mut self) {

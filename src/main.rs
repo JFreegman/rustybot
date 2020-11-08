@@ -68,7 +68,7 @@ const BOOTSTRAP_KEY: &'static str = "7E5668E0EE09E19F320AD47902419331FFEE147BB36
 
 fn load_tox() -> Option<Tox>
 {
-    let options = ToxOptions::new();
+    let options = ToxOptions::new().no_lan();
 
     let fp = match open_file(PROFILE_DATA_PATH, false) {
         Some(fp) => fp,

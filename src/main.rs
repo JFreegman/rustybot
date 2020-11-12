@@ -324,8 +324,13 @@ fn cb_group_peerlist_change(bot: &mut Bot, groupnumber: u32)
             None => 0,
         };
 
+        let rounds_won = match get_peer_index(&bot.groups[index].peers, &public_key) {
+            Some(peer_idx) => bot.groups[index].peers[peer_idx].get_rounds_won(),
+            None => 0,
+        };
+
         bot.db.set_nick(&name, &public_key);
-        new_list.push(Peer::new(public_key, name, round_score));
+        new_list.push(Peer::new(public_key, name, round_score, rounds_won));
     }
 
     bot.groups[index].peers = new_list;

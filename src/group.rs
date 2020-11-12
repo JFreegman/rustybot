@@ -31,14 +31,16 @@ pub struct Peer {
     pub nick:            String,
     pub public_key:      String,
     pub round_score:     u64,
+    pub rounds_won:      u32,
 }
 
 impl Peer {
-    pub fn new(public_key: String, nick: String, round_score: u64) -> Peer {
+    pub fn new(public_key: String, nick: String, round_score: u64, rounds_won: u32) -> Peer {
         Peer {
             nick: nick,
             public_key: public_key,
             round_score: round_score,
+            rounds_won: rounds_won,
         }
     }
 
@@ -48,14 +50,20 @@ impl Peer {
 
     pub fn update_round_score(&mut self, points: u64) {
         self.round_score += points;
+        self.rounds_won += 1;
     }
 
     pub fn get_round_score(&self) -> u64 {
         self.round_score
     }
 
+    pub fn get_rounds_won(&self) -> u32 {
+        self.rounds_won
+    }
+
     pub fn clear_round(&mut self) {
         self.round_score = 0;
+        self.rounds_won = 0;
     }
 }
 
@@ -123,7 +131,7 @@ impl GroupChat {
 
             let peername = p.get_nick();
 
-            db.update_score(&peername, &pk, p.round_score);
+            db.update_score(&peername, &pk, p.round_score, p.rounds_won);
 
             if p.round_score > best_score && !pk.is_empty() {
                 best_score = p.round_score;
@@ -154,7 +162,7 @@ impl GroupChat {
 
         self.send_message(tox, &message);
 
-        db.update_score(&winner_name, &winner_pk, 0);
+        db.update_score(&winner_name, &winner_pk, 0, 0);
         db.save();
     }
 

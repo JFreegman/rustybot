@@ -48,11 +48,11 @@ pub struct DBentry {
 
 impl DBentry {
     /* New entries are created only when a peer wins a round */
-    pub fn new(points: u64, nick: &str) -> DBentry {
+    pub fn new(points: u64, rounds_won: u32, nick: &str) -> DBentry {
         DBentry {
             nick: nick.to_string(),
             points: points,
-            rounds_won: 1,
+            rounds_won: rounds_won,
             games_won: 0,
         }
     }
@@ -92,12 +92,12 @@ impl DataBase {
                                               })
     }
 
-    /* Updates db entry's score for key. A zero value for points indicates a game win. */
-    pub fn update_score(&mut self, nick: &str, key: &str, points: u64) {
+    /* Updates db entry's score for key. A zero value for points and/or rounds indicates a game win. */
+    pub fn update_score(&mut self, nick: &str, key: &str, points: u64, rounds: u32) {
         if let Some(entry) = self.hashmap.get_mut(key) {
-            if points != 0 {
+            if points != 0 || rounds != 0{
                 entry.points += points;
-                entry.rounds_won += 1;
+                entry.rounds_won += rounds;
             } else {
                 entry.games_won += 1;
             }
@@ -105,7 +105,7 @@ impl DataBase {
             return;
         };
 
-        self.hashmap.insert(key.to_string(), DBentry::new(points, nick));
+        self.hashmap.insert(key.to_string(), DBentry::new(points, rounds, nick));
     }
 
     pub fn save(&self) {

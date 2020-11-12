@@ -254,10 +254,12 @@ pub fn process_answer(bot: &mut Bot, groupnumber: u32, peernumber: u32, message:
     let points = bot.groups[index].trivia.get_score();
     bot.groups[index].peers[peer_idx].update_round_score(points);
     let score = bot.groups[index].peers[peer_idx].get_round_score();
+    let rounds_won = bot.groups[index].peers[peer_idx].get_rounds_won();
     let peername = bot.groups[index].peers[peer_idx].get_nick();
 
     let mut response = String::new();
-    write!(&mut response, "{} got the answer for {} points (total: {})", peername, points, score).unwrap();
+    write!(&mut response, "{} got the answer for {} points (Total: {} points, {} rounds)",
+           peername, points, score, rounds_won).unwrap();
     bot.groups[index].send_message(bot.tox, &response);
 
     bot.groups[index].trivia.winner = true;
